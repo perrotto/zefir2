@@ -46,6 +46,15 @@ Pierwszy działający wariant zostaje zapisany. Jeśli żaden nie działa – pr
 login musi być e-mailem konta na właściwym środowisku, a konto musi mieć własne hasło PUESC
 (samo logowanie przez login.gov.pl nie wystarcza do WebService).
 
+## Szybkie pobranie PDF (jak na PUESC)
+Na stronie **Zapytania** wpisz VIN (albo kilka) i kliknij **Pobierz PDF**. Aplikacja wysyła zapytanie PZAS,
+co 15 s sprawdza, czy ZEFIR2 odpowiedział, i od razu pobiera PDF – ten sam dokument, który daje PUESC
+(„Dokument potwierdzający zapłatę akcyzy na terytorium kraju”, pole `doc` odpowiedzi PZASResp).
+- Przy kilku VIN-ach – przycisk **Pobierz wszystkie PDF-y (ZIP)**.
+- Jeśli PDF dla danego VIN już jest, aplikacja nie pyta PUESC ponownie (chyba że zaznaczysz „zapytaj ponownie”).
+- **PDF-y (ZIP)** na liście zapytań – wszystkie zapisane potwierdzenia (z uwzględnieniem wyszukiwania).
+- Nazwa pliku: `Potwierdzenie_zaplaty_akcyzy_<VIN>.pdf`.
+
 ## Praca
 1. **Nowe zapytanie** – wklej VIN-y (po jednym w wierszu) albo podaj numer UPO deklaracji
    (opcjonalnie potwierdzenie zbiorcze + kwota dokumentu). Każde zapytanie jest walidowane z XSD przed wysłaniem.

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Pobieranie potwierdzeń{% endblock %}
+{% block body %}
+<a class="back" href="{{ url_for('lista') }}">← Zapytania</a>
+<h1>Pobieranie potwierdzenia zapłaty akcyzy</h1>
+<p class="lead" id="info">Czekam na odpowiedź ZEFIR2 – możesz zostawić tę stronę otwartą. PDF pobierze się sam,
+gdy tylko przyjdzie. Jeśli zamkniesz stronę, odpowiedź odbierzesz później przyciskiem „Sprawdź odpowiedzi”.</p>
+<div class="tablewrap"><table class="grid">
+  <thead><tr><th>VIN</th><th>Status</th><th>Opis</th><th></th></tr></thead>
+  <tbody id="pozycje">
+  {% for p in pozycje %}
+    <tr data-id="{{ p.id }}"><td class="mono"><a href="{{ url_for('zapytanie', zid=p.id) }}">{{ p.vin }}</a></td>
+      <td><span class="pill {{ p.klasa }}">{{ p.nazwa }}</span></td><td class="sub">{{ p.opis }}</td>
+      <td>{% if p.pdf %}<a class="btn primary" href="{{ p.pdf }}">Pobierz PDF</a>{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<div class="row"><a class="btn" id="zip" href="#" hidden>Pobierz wszystkie PDF-y (ZIP)</a>
+  <span class="sub" id="licznik"></span></div>
+<div id="bledy"></div>
+<script>
+const ids = "{{ ids }}", start = Date.now(), LIMIT = 10 * 60 * 1000, pobrane = new Set();
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function sprawdz() {
+  let d;
+  try { d = await (await fetch("{{ url_for('api_status') }}?ids=" + ids)).json(); }
+  catch (e) { document.getElementById('licznik').textContent = 'Brak odpowiedzi aplikacji – ponawiam…'; return setTimeout(sprawdz, 10000); }
+  document.getElementById('pozycje').innerHTML = d.pozycje.map(p =>
+    `<tr><td class="mono"><a href="/zapytanie/${p.id}">${esc(p.vin)}</a></td>
+     <td><span class="pill ${p.klasa}">${esc(p.nazwa)}</span></td><td class="sub">${esc(p.opis)}</td>
+     <td>${p.pdf ? `<a class="btn primary" href="${p.pdf}">Pobierz PDF</a>` : ''}</td></tr>`).join('');
+  document.getElementById('bledy').innerHTML = d.bledy.map(b => `<div class="flash err">${esc(b)}</div>`).join('');
+  const gotowe = d.pozycje.filter(p => p.pdf);
+  if (d.pozycje.length === 1 && gotowe.length === 1 && !pobrane.has(gotowe[0].id)) {
+    pobrane.add(gotowe[0].id); window.location.href = gotowe[0].pdf;   // jak na PUESC – od razu plik
+  }
+  const zip = document.getElementById('zip');
+  zip.hidden = gotowe.length < 2; zip.href = d.zip;
+  const czeka = d.pozycje.filter(p => !p.koniec).length;
+  const sek = Math.round((Date.now() - start) / 1000);
+  if (!czeka) {
+    document.getElementById('info').textContent = gotowe.length
+      ? 'Gotowe.' : 'Zakończono – brak PDF. Szczegóły w kolumnie Opis.';
+    document.getElementById('licznik').textContent = '';
+    return;
+  }
+  if (Date.now() - start > LIMIT) {
+    document.getElementById('info').textContent = 'Odpowiedź jeszcze nie przyszła (10 min). ZEFIR2 bywa wolniejszy – ' +
+      'sprawdź później przyciskiem „Sprawdź odpowiedzi” na liście zapytań.';
+    document.getElementById('licznik').textContent = '';
+    return;
+  }
+  document.getElementById('licznik').textContent = `Czekam: ${czeka} z ${d.pozycje.length} · ${sek} s`;
+  setTimeout(sprawdz, 5000);
+}
+sprawdz();
+</script>
+{% endblock %}

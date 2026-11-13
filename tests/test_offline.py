@@ -260,6 +260,38 @@ class TestAplikacja(unittest.TestCase):
                 self.app.db().execute("DELETE FROM ustawienia WHERE klucz LIKE 'ws_%'")
                 self.app.db().commit()
 
+    def test_szybkie_pobranie_pdf(self):
+        import io, zipfile
+        self.c.post("/ustawienia", data={"srodowisko": "produkcja", "akcja": "zapisz", "login": "a@firma.pl",
+                                         "haslo": "tajne", "endpoint": "", "target_systems": "", "ws_json": ""})
+        UdawanyPuesc.dokumenty = []
+        r = self.c.post("/pobierz-pdf", data={"viny": VIN})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/oczekiwanie?ids=", r.headers["Location"])
+        ids = r.headers["Location"].split("ids=")[1]
+        self.assertEqual(self.c.get(r.headers["Location"]).status_code, 200)
+        inna = PRZYKLAD.replace(b"PZAS/0228/2021/00011", b"PZAS/1438/2026/93078")  # nowy dokument, nie duplikat
+        UdawanyPuesc.dokumenty = [("pzas.xml", inna)]
+        self.app._OSTATNIE_SPRAWDZENIE["czas"] = 0
+        d = self.c.get(f"/api/status?ids={ids}").get_json()
+        self.assertEqual(d["pozycje"][0]["status"], "potwierdzone")
+        self.assertTrue(d["pozycje"][0]["pdf"])
+        self.assertTrue(d["pozycje"][0]["koniec"])
+        pdf = self.c.get(d["pozycje"][0]["pdf"])
+        self.assertTrue(pdf.data.startswith(b"%PDF"))
+        self.assertIn("Potwierdzenie_zaplaty_akcyzy_" + VIN, pdf.headers["Content-Disposition"])
+        pdf.close()
+        # ponowne pobranie tego VIN nie wysyła nowego zapytania do PUESC
+        przed = len(UdawanyPuesc.wyslane)
+        r2 = self.c.post("/pobierz-pdf", data={"viny": VIN})
+        self.assertEqual(r2.headers["Location"].split("ids=")[1], ids)
+        self.assertEqual(len(UdawanyPuesc.wyslane), przed)
+        z = self.c.get(f"/pdf.zip?ids={ids}")
+        nazwy = zipfile.ZipFile(io.BytesIO(z.data)).namelist()
+        z.close()
+        self.assertEqual(nazwy, [f"Potwierdzenie_zaplaty_akcyzy_{VIN}.pdf"])
+        UdawanyPuesc.dokumenty = []
+
     def test_npp_odrzuca(self):
         UdawanyPuesc.dokumenty = []
         self.c.post("/ustawienia", data={"srodowisko": "test", "akcja": "zapisz", "login": "test@firma.pl",

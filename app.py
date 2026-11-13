@@ -11,6 +11,8 @@ import json
 import os
 import re
 import sqlite3
+import time
+import zipfile
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -294,8 +296,8 @@ def przetworz_dokument(dok: dict, zid: int | None = None) -> str | None:
                 if r and not r["vin"]:
                     dane["vin"] = ", ".join(x["VIN"] for x in o["auta"])
         if o["pdf"]:
-            nazwa = (o["auta"][0]["VIN"] if o["auta"] else "potwierdzenie") + "_" + (o["docNo"] or "PZAS")
-            dane["pdf"] = zapisz_plik(PDF_DIR, nazwa + ".pdf", o["pdf"])
+            vin_pdf = o["auta"][0]["VIN"] if len(o["auta"]) == 1 else (o["docNo"] or "PZAS").replace("/", "_")
+            dane["pdf"] = zapisz_plik(PDF_DIR, f"Potwierdzenie_zaplaty_akcyzy_{vin_pdf}.pdf", o["pdf"])
         nowy_status = "potwierdzone" if o["auta"] and o["pdf"] else "odpowiedz"
     else:
         t = pzas.parsuj_techniczne(xml) if rodzaj != "nie-XML" else {"pola": {}}
@@ -439,6 +441,118 @@ def sprawdz():
     return redirect(url_for("zapytanie", zid=tylko) if tylko else url_for("lista"))
 
 
+# ---------------------------------------------------------------- szybkie pobranie PDF (jak na stronie PUESC)
+
+_OSTATNIE_SPRAWDZENIE = {"czas": 0.0}
+ODSTEP_SPRAWDZANIA = 15  # s – przy oczekiwaniu na odpowiedź; bez oczekiwania PUESC prosi o ≥ 5 min
+
+
+def status_json(z) -> dict:
+    nazwa, klasa = STATUSY.get(z["status"], (z["status"], "due"))
+    return {"id": z["id"], "vin": z["vin"] or z["upo"], "status": z["status"], "nazwa": nazwa, "klasa": klasa,
+            "opis": z["opis"] or "", "doc_no": z["doc_no"] or "",
+            "pdf": url_for("pdf", zid=z["id"], pobierz=1) if z["pdf"] else "",
+            "koniec": z["status"] not in CZEKAJACE}
+
+
+@app.route("/pobierz-pdf", methods=["POST"])
+def pobierz_pdf():
+    """Wpisz VIN → wyślij PZAS → czekaj na odpowiedź → pobierz PDF. Gotowe potwierdzenia nie są pytane ponownie."""
+    vins = list(dict.fromkeys(v for v in (pzas.normalizuj_vin(x) for x in
+                                          re.split(r"[\n,;]+", request.form.get("viny", ""))) if v))
+    if not vins:
+        flash("Wpisz numer VIN.", "err")
+        return redirect(url_for("lista"))
+    if not _ctx()["skonfigurowane"]:
+        flash("Najpierw uzupełnij login i hasło PUESC w Ustawieniach.", "err")
+        return redirect(url_for("ustawienia"))
+    odswiez = bool(request.form.get("odswiez"))
+    ids, zle = [], []
+    for vin in vins:
+        gotowe = None if odswiez else db().execute(
+            "SELECT id FROM zapytania WHERE vin=? AND pdf IS NOT NULL AND srodowisko=? ORDER BY id DESC LIMIT 1",
+            (vin, srodowisko())).fetchone()
+        czeka = db().execute(f"SELECT id FROM zapytania WHERE vin=? AND status IN {CZEKAJACE} AND srodowisko=? "
+                             "ORDER BY id DESC LIMIT 1", (vin, srodowisko())).fetchone()
+        if gotowe or czeka:
+            ids.append((gotowe or czeka)["id"])
+            continue
+        xml = pzas.zbuduj_zapytanie(vin=vin)
+        bledy = pzas.waliduj(xml)
+        if bledy:
+            zle.append(f"{vin}: {'; '.join(bledy)}")
+            continue
+        plik = zapisz_plik(DOK_DIR, f"PZASReq_{vin}.xml", xml)
+        cur = db().execute("INSERT INTO zapytania (srodowisko, vin, plik) VALUES (?,?,?)", (srodowisko(), vin, plik))
+        db().commit()
+        wyslij_zapytanie(cur.lastrowid)
+        ids.append(cur.lastrowid)
+    for z in zle:
+        flash(z, "err")
+    if not ids:
+        return redirect(url_for("lista"))
+    return redirect(url_for("oczekiwanie", ids=",".join(map(str, ids))))
+
+
+def _ids_z(arg: str) -> list[int]:
+    return [int(x) for x in (arg or "").split(",") if x.strip().isdigit()][:200]
+
+
+@app.route("/oczekiwanie")
+def oczekiwanie():
+    ids = _ids_z(request.args.get("ids", ""))
+    zap = [db().execute("SELECT * FROM zapytania WHERE id=?", (i,)).fetchone() for i in ids]
+    return render_template("oczekiwanie.html", ids=",".join(map(str, ids)),
+                           pozycje=[status_json(z) for z in zap if z])
+
+
+@app.route("/api/status")
+def api_status():
+    """Stan zapytań dla strony oczekiwania; z PUESC pyta najwyżej co ODSTEP_SPRAWDZANIA sekund."""
+    ids = _ids_z(request.args.get("ids", ""))
+    zap = [db().execute("SELECT * FROM zapytania WHERE id=?", (i,)).fetchone() for i in ids]
+    zap = [z for z in zap if z]
+    bledy = []
+    if any(z["status"] in CZEKAJACE for z in zap) and \
+            time.monotonic() - _OSTATNIE_SPRAWDZENIE["czas"] >= ODSTEP_SPRAWDZANIA:
+        _OSTATNIE_SPRAWDZENIE["czas"] = time.monotonic()
+        try:
+            _, bledy = sprawdz_odpowiedzi()
+        except seap.BladSeap as e:
+            bledy = [str(e)]
+        zap = [db().execute("SELECT * FROM zapytania WHERE id=?", (z["id"],)).fetchone() for z in zap]
+    return {"pozycje": [status_json(z) for z in zap], "bledy": bledy,
+            "zip": url_for("pdf_zip", ids=",".join(str(z["id"]) for z in zap if z["pdf"]))}
+
+
+@app.route("/pdf.zip")
+def pdf_zip():
+    """ZIP z PDF-ami: ?ids=1,2,3 albo bez ids – wszystkie potwierdzenia z bieżącego filtra listy."""
+    ids = _ids_z(request.args.get("ids", ""))
+    if ids:
+        zap = [db().execute("SELECT * FROM zapytania WHERE id=?", (i,)).fetchone() for i in ids]
+    else:
+        q, p = "SELECT * FROM zapytania WHERE pdf IS NOT NULL", []
+        if request.args.get("q"):
+            q += " AND (UPPER(vin) LIKE ? OR UPPER(upo) LIKE ? OR UPPER(doc_no) LIKE ?)"
+            p += [f"%{request.args['q'].upper()}%"] * 3
+        zap = db().execute(q + " ORDER BY id", p).fetchall()
+    buf, nazwy = io.BytesIO(), set()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for z in zap:
+            if z and z["pdf"] and (PDF_DIR / z["pdf"]).is_file():
+                nazwa = nazwa_pdf(z)
+                nazwa = nazwa if nazwa not in nazwy else f"{z['id']}_{nazwa}"
+                nazwy.add(nazwa)
+                zf.write(PDF_DIR / z["pdf"], nazwa)
+    if not nazwy:
+        flash("Brak PDF-ów do spakowania.", "warn")
+        return redirect(url_for("lista"))
+    buf.seek(0)
+    return send_file(buf, mimetype="application/zip", as_attachment=True,
+                     download_name=f"potwierdzenia_akcyzy_{date.today().isoformat()}.zip")
+
+
 @app.route("/zapytanie/<int:zid>")
 def zapytanie(zid):
     z = db().execute("SELECT * FROM zapytania WHERE id=?", (zid,)).fetchone() or abort(404)
@@ -468,13 +582,19 @@ def usun(zid):
     return redirect(url_for("lista"))
 
 
+def nazwa_pdf(z) -> str:
+    """Nazwa pliku do pobrania – jak na PUESC, z VIN (plik na dysku może mieć dopisany numer)."""
+    vin = (z["vin"] or "").strip()
+    return f"Potwierdzenie_zaplaty_akcyzy_{vin}.pdf" if vin and "," not in vin else z["pdf"]
+
+
 @app.route("/pdf/<int:zid>")
 def pdf(zid):
-    z = db().execute("SELECT pdf FROM zapytania WHERE id=?", (zid,)).fetchone()
+    z = db().execute("SELECT vin, pdf FROM zapytania WHERE id=?", (zid,)).fetchone()
     if not z or not z["pdf"]:
         abort(404)
     return send_file(PDF_DIR / z["pdf"], mimetype="application/pdf",
-                     as_attachment=bool(request.args.get("pobierz")), download_name=z["pdf"])
+                     as_attachment=bool(request.args.get("pobierz")), download_name=nazwa_pdf(z))
 
 
 @app.route("/dokument/<int:did>")
