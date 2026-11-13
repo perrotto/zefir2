@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Zapytania{% endblock %}
+{% block body %}
+<div class="head">
+  <div>
+    <h1>Zapytania o potwierdzenie zapłaty akcyzy</h1>
+    <p class="lead">Każde zapytanie to komunikat PZAS wysłany do ZEFIR2. Odpowiedzi nie przychodzą od razu –
+    kliknij „Sprawdź odpowiedzi” po kilku minutach. PUESC prosi, by nie odpytywać częściej niż co 5 minut.</p>
+  </div>
+  <div class="row">
+    <form method="post" action="{{ url_for('sprawdz') }}"><button class="btn primary">Sprawdź odpowiedzi</button></form>
+    <a class="btn" href="{{ url_for('nowe') }}">Nowe zapytanie</a>
+    <a class="btn" href="{{ url_for('eksport') }}">Eksport CSV</a>
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <label>Szukaj (VIN, UPO, nr potwierdzenia)<input name="q" value="{{ q }}"></label>
+  <label>Status
+    <select name="status" onchange="this.form.submit()">
+      <option value="">wszystkie</option>
+      {% for k, (nazwa, _) in STATUSY.items() %}
+        <option value="{{ k }}" {{ 'selected' if status==k }}>{{ nazwa }}{% if licz.get(k) %} ({{ licz[k] }}){% endif %}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <div class="row" style="align-items:flex-end"><button class="btn">Filtruj</button></div>
+</form>
+
+{% if zapytania %}
+<div class="tablewrap">
+<table class="grid">
+  <thead><tr><th>#</th><th>Utworzono</th><th>VIN / UPO</th><th>Status</th><th>Potwierdzenie</th>
+    <th>Data zapłaty</th><th class="num">Akcyza</th><th>Opis</th><th></th></tr></thead>
+  <tbody>
+  {% for z in zapytania %}
+    {% set st = STATUSY.get(z.status, (z.status, 'due')) %}
+    <tr>
+      <td><a href="{{ url_for('zapytanie', zid=z.id) }}">{{ z.id }}</a></td>
+      <td class="nowrap">{{ z.utworzono|dt }}{% if z.srodowisko == 'test' %}<div class="sub">test</div>{% endif %}</td>
+      <td class="mono">{{ z.vin or '' }}{% if z.upo %}<div class="sub">UPO {{ z.upo }}{% if z.zbiorcze %} · zbiorcze{% endif %}</div>{% endif %}
+        {% if z.marka_model %}<div class="sub">{{ z.marka_model }}</div>{% endif %}</td>
+      <td><span class="pill {{ st[1] }}">{{ st[0] }}</span></td>
+      <td class="mono">{{ z.doc_no or '—' }}</td>
+      <td class="nowrap">{{ z.data_zaplaty|dt }}</td>
+      <td class="num">{{ z.kwota_akcyzy|zl }}</td>
+      <td class="sub">{{ (z.opis or '')[:160] }}</td>
+      <td class="nowrap">{% if z.pdf %}<a class="btn" href="{{ url_for('pdf', zid=z.id) }}" target="_blank">PDF</a>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty">Brak zapytań. <a href="{{ url_for('nowe') }}">Utwórz pierwsze zapytanie</a>.</div>
+{% endif %}
+{% endblock %}

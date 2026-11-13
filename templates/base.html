@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Potwierdzenia akcyzy{% endblock %} · ZEFIR2</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="top">
+  <div class="brand">Potwierdzenia akcyzy <span>ZEFIR2 / PUESC</span>
+    <a href="{{ url_for('ustawienia') }}" class="env {{ srodowisko }}" style="text-decoration:none">{{ 'TEST' if srodowisko=='test' else 'PRODUKCJA' }}</a></div>
+  <nav>
+    <a href="{{ url_for('lista') }}" class="{{ 'on' if request.endpoint in ('lista','zapytanie') }}">Zapytania{% if czeka %} <b class="badge">{{ czeka }}</b>{% endif %}</a>
+    <a href="{{ url_for('nowe') }}" class="{{ 'on' if request.endpoint=='nowe' }}">Nowe zapytanie</a>
+    <a href="{{ url_for('dokumenty') }}" class="{{ 'on' if request.endpoint=='dokumenty' }}">Dokumenty z PUESC</a>
+    <a href="{{ url_for('ustawienia') }}" class="{{ 'on' if request.endpoint=='ustawienia' }}">Ustawienia</a>
+    <a href="{{ url_for('log') }}" class="{{ 'on' if request.endpoint=='log' }}">Log</a>
+  </nav>
+</header>
+<main>
+  {% if not skonfigurowane and request.endpoint != 'ustawienia' %}
+    <div class="warnbox">Brak loginu/hasła PUESC dla środowiska {{ srodowisko }} – <a href="{{ url_for('ustawienia') }}">uzupełnij Ustawienia</a>.</div>
+  {% endif %}
+  {% for kat, msg in get_flashed_messages(with_categories=true) %}
+    <div class="flash {{ kat }}">{{ msg }}</div>
+  {% endfor %}
+  {% block body %}{% endblock %}
+</main>
+</body>
+</html>

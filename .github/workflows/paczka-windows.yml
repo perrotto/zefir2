@@ -1,0 +1,112 @@
+# Buduje przenośną paczkę dla Windows (Python w środku – nic nie trzeba instalować).
+# Uruchamia się przy każdej zmianie w gałęzi main, ręcznie (zakładka Actions)
+# oraz przy tagu v*. Każde udane budowanie po zmianie publikuje nowe wydanie w zakładce Releases.
+name: Paczka Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Testy offline (udawany serwer PUESC)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Pobierz Python embeddable (ta sama wersja)
+        run: |
+          $ver = python -c "import platform; print(platform.python_version())"
+          $tag = python -c "import sys; print(f'{sys.version_info[0]}{sys.version_info[1]}')"
+          "PYVER=$ver" >> $env:GITHUB_ENV
+          "PYTAG=$tag" >> $env:GITHUB_ENV
+          $out = "dist/Zefir2Akcyza"
+          New-Item -ItemType Directory -Force "$out/python" | Out-Null
+          Invoke-WebRequest "https://www.python.org/ftp/python/$ver/python-$ver-embed-amd64.zip" -OutFile py.zip
+          Expand-Archive py.zip -DestinationPath "$out/python"
+
+      - name: Zainstaluj biblioteki do paczki
+        run: |
+          python -m pip install --only-binary=:all: --target dist/Zefir2Akcyza/python/Lib/site-packages -r requirements.txt
+          # Ścieżki importu dla wbudowanego Pythona (plik ._pth zastępuje sys.path)
+          @(
+            "python$env:PYTAG.zip"
+            "."
+            "Lib\site-packages"
+            "..\app"
+            "import site"
+          ) | Set-Content -Encoding ascii "dist/Zefir2Akcyza/python/python$env:PYTAG._pth"
+
+      - name: Skopiuj aplikację
+        run: |
+          $app = "dist/Zefir2Akcyza/app"
+          New-Item -ItemType Directory -Force $app | Out-Null
+          Copy-Item app.py, seap.py, pzas.py, requirements.txt $app
+          Copy-Item -Recurse templates, static, schematy $app
+          Copy-Item paczka/uruchom.bat, paczka/CZYTAJ.txt dist/Zefir2Akcyza/
+          New-Item -ItemType Directory -Force dist/Zefir2Akcyza/dane | Out-Null
+
+      - name: Test – czy aplikacja startuje w paczce
+        run: |
+          $py = "dist/Zefir2Akcyza/python/python.exe"
+          & $py -c "import flask, requests, lxml.etree, seap, pzas; print(pzas.waliduj(pzas.zbuduj_zapytanie(vin='TEST')) or 'importy i XSD OK')"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $env:ZEFIR_DATA = "$env:RUNNER_TEMP/test-dane"
+          $env:ZEFIR_NO_BROWSER = "1"
+          $env:PORT = "5099"
+          $p = Start-Process -FilePath $py -ArgumentList "dist/Zefir2Akcyza/app/app.py" -PassThru -NoNewWindow
+          $ok = $false
+          foreach ($i in 1..30) {
+            Start-Sleep -Seconds 1
+            try {
+              foreach ($u in "/", "/nowe", "/ustawienia", "/dokumenty", "/log") {
+                $r = Invoke-WebRequest "http://127.0.0.1:5099$u" -UseBasicParsing
+                if ($r.StatusCode -ne 200) { throw "HTTP $($r.StatusCode) dla $u" }
+              }
+              $ok = $true; break
+            } catch { }
+          }
+          Stop-Process -Id $p.Id -Force
+          if (-not $ok) { Write-Error "Aplikacja nie odpowiada"; exit 1 }
+          Write-Host "Aplikacja działa"
+
+      - name: Spakuj
+        run: |
+          Compress-Archive -Path dist/Zefir2Akcyza -DestinationPath Zefir2Akcyza-windows.zip
+          "{0:N1} MB" -f ((Get-Item Zefir2Akcyza-windows.zip).Length / 1MB)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Zefir2Akcyza-windows
+          path: dist/Zefir2Akcyza
+
+      - name: Opublikuj w Releases
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $tag = "${{ github.ref_name }}"
+          } else {
+            $tag = "v0.1.${{ github.run_number }}"
+          }
+          $notes = "Przenośna paczka dla Windows – nic nie trzeba instalować.`n`n1. Pobierz Zefir2Akcyza-windows.zip (poniżej, w sekcji Assets).`n2. Rozpakuj i uruchom uruchom.bat.`n3. Przy aktualizacji przenieś folder dane ze starej wersji do nowej.`n`nZmiana: ${{ github.event.head_commit.message }}"
+          gh release create $tag Zefir2Akcyza-windows.zip --target "${{ github.sha }}" --title "Potwierdzenia akcyzy ZEFIR2 $tag" --notes $notes

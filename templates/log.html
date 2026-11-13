@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Log{% endblock %}
+{% block body %}
+<h1>Log komunikacji z PUESC</h1>
+<p class="lead">Ostatnie 100 wymian SOAP (żądanie i odpowiedź, bez hasła i nonce). Przydatne przy zgłoszeniu do helpdesku PUESC.</p>
+<div class="cols" style="grid-template-columns: 1fr 3fr">
+  <div class="card loglist">
+    {% for p in pliki %}<a href="{{ url_for('log', plik=p) }}" class="{{ 'on' if p==wybrany }}">{{ p }}</a>{% else %}<span class="sub">Brak wpisów.</span>{% endfor %}
+  </div>
+  <div>{% if tresc %}<pre class="code">{{ tresc }}</pre>{% else %}<div class="empty">Wybierz wpis z listy.</div>{% endif %}</div>
+</div>
+{% endblock %}

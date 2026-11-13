@@ -1,0 +1,9 @@
+__pycache__/
+.venv/
+data/
+dane/
+dist/
+*.zip
+*.sqlite
+# nie commitujemy prawdziwych potwierdzen
+*.pdf

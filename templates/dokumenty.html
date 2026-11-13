@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Dokumenty z PUESC{% endblock %}
+{% block body %}
+<h1>Dokumenty pobrane z PUESC</h1>
+<p class="lead">Wszystko, co przyszło kanałem WebService: odpowiedzi PZASResp i potwierdzenia techniczne (UPP, NPP, UPO, UPD).
+Dokumenty, których nie udało się przypisać do zapytania, mają puste pole „Zapytanie”.</p>
+{% if dokumenty %}
+<div class="tablewrap"><table class="grid">
+  <thead><tr><th>Pobrano</th><th>Rodzaj</th><th>Opis</th><th>Zapytanie</th><th></th></tr></thead>
+  <tbody>{% for d in dokumenty %}<tr>
+    <td class="nowrap">{{ d.pobrano|dt }}</td><td class="mono">{{ d.rodzaj }}</td><td>{{ d.opis }}</td>
+    <td>{% if d.zapytanie_id %}<a href="{{ url_for('zapytanie', zid=d.zapytanie_id) }}">#{{ d.zapytanie_id }}</a>
+      <span class="sub mono">{{ d.vin or d.upo or '' }}</span>{% else %}—{% endif %}</td>
+    <td><a href="{{ url_for('dokument', did=d.id) }}">XML</a></td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="empty">Jeszcze nic nie pobrano.</div>{% endif %}
+{% endblock %}

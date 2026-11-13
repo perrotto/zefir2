@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Ustawienia{% endblock %}
+{% block body %}
+<h1>Ustawienia połączenia z PUESC</h1>
+<p class="lead">Logowanie do WebService odbywa się kontem PUESC (login = adres e-mail konta). Aplikacja nie zapisuje hasła,
+tylko jego skrót SHA-1 potrzebny do podpisu WS-Security. Zacznij od środowiska testowego (te-ws.puesc.gov.pl) –
+konto na test.puesc.gov.pl zakłada się osobno.</p>
+
+<form method="post" class="card stack">
+  <div class="tabs">
+    <label><input type="radio" name="srodowisko" value="test" {{ 'checked' if srodowisko=='test' }} onchange="this.form.akcja.value='przelacz';this.form.submit()"> Test</label>
+    <label><input type="radio" name="srodowisko" value="produkcja" {{ 'checked' if srodowisko=='produkcja' }} onchange="this.form.akcja.value='przelacz';this.form.submit()"> Produkcja</label>
+  </div>
+  <input type="hidden" name="akcja" value="zapisz">
+  <div class="row">
+    <label class="grow">Login PUESC (e-mail)<input name="login" value="{{ login }}" autocomplete="username"></label>
+    <label class="grow">Hasło PUESC {% if ma_haslo %}<span class="hint">(zapisane – wpisz tylko, by zmienić)</span>{% endif %}
+      <input name="haslo" type="password" autocomplete="current-password"></label>
+  </div>
+  <label>Adres usługi (puste = domyślny)<input name="endpoint" value="{{ endpoint }}" placeholder="{{ domyslny_endpoint }}"></label>
+  <label>Systemy docelowe (targetSystems, oddzielone przecinkami – zwykle puste)<input name="target_systems" value="{{ target_systems }}" placeholder="np. ZEFIR2"></label>
+  <details>
+    <summary>Zaawansowane: przestrzenie nazw i akcje SOAP</summary>
+    <p class="hint">Specyfikacja SEAP nie podaje tych wartości wprost. „Odczytaj z WSDL” pobiera je z serwera PUESC –
+      zrób to raz po ustawieniu środowiska. Pole można też edytować ręcznie (JSON).</p>
+    <textarea name="ws_json" class="vins" style="min-height:18rem">{{ ws_json }}</textarea>
+  </details>
+  <div class="row">
+    <button class="btn primary" onclick="this.form.akcja.value='zapisz'">Zapisz</button>
+    <button class="btn" onclick="this.form.akcja.value='wsdl'">Odczytaj z WSDL</button>
+    <button class="btn" onclick="this.form.akcja.value='test'">Test połączenia</button>
+    <button class="btn" onclick="this.form.akcja.value='domyslne'">Przywróć domyślne WS</button>
+  </div>
+</form>
+
+<div class="card">
+  <h2>Dane</h2>
+  <p class="sub">Baza, wysłane i pobrane XML-e oraz PDF-y potwierdzeń leżą w folderze <span class="mono">dane</span> obok
+    <span class="mono">uruchom.bat</span> (PDF-y w <span class="mono">dane\potwierdzenia</span>).
+    Każda wymiana z PUESC jest zapisywana w zakładce Log (bez hasła).</p>
+  <a class="btn" href="{{ url_for('kopia') }}">Pobierz kopię bazy</a>
+</div>
+{% endblock %}

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema 
+    targetNamespace="http://www.e-clo.pl/ZEFIR2/eZefir2/xsd/v4_0/pzas_resp.xsd"
+    xmlns:pzas="http://www.e-clo.pl/ZEFIR2/eZefir2/xsd/v4_0/pzas_resp.xsd"
+    xmlns:tp3="http://www.e-clo.pl/ZEFIR2/eZefir2/xsd/v3_0/Types.xsd"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="4_0"
+    xml:lang="pl">
+    
+    <xs:import namespace="http://www.e-clo.pl/ZEFIR2/eZefir2/xsd/v3_0/Types.xsd"
+               schemaLocation="Types_Z3.xsd" />
+    
+    <xs:annotation>
+        <xs:documentation source="doc"
+                          xml:lang="pl">Definicja odpowiedzi dla potwierdzenia zapłaty akcyzy na terytorium kraju.</xs:documentation>
+    </xs:annotation>
+    <xs:element name="PZASResp">
+        <xs:annotation>
+            <xs:documentation source="doc"
+                              xml:lang="pl">Element główny.</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="docNo"
+                            type="xs:string"
+                            minOccurs="0"
+                            maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation source="doc"
+                                          xml:lang="pl">Numer systemowy dokumentu potwierdzenia zapłaty.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="dateOfIssue"
+                            type="xs:dateTime"
+                            minOccurs="1"
+                            maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation source="doc"
+                                          xml:lang="pl">Data i czas wystawienia dokumentu potwierdzenia.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="nameOfTheTaxAuthority"
+                            type="xs:string"
+                            minOccurs="0"
+                            maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation source="doc"
+                                          xml:lang="pl">Nazwa organu podatkowego.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+				<xs:element name="subjectOfTaxation">	
+                    <xs:annotation>
+                        <xs:documentation source="doc"
+                                          xml:lang="pl">Przedmiot opodatkowania</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+						<xs:attribute name="optionSubjectOfTaxation"
+						              use="required">				
+							<xs:annotation>
+								<xs:documentation source="doc"
+								                  xml:lang="pl">Wariant przedmiotu opodatkowania.</xs:documentation>	
+							</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="1">
+                                            <xs:annotation>
+                                                <xs:documentation>
+                                                                        Z tytułu nabycia wewnątrzwspólnotowego samochodu osobowego niezarejestrowanego wcześniej na terytorium kraju. 
+                                                </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:enumeration>
+										<xs:enumeration value="2">
+                                            <xs:annotation>
+                                                <xs:documentation>
+                                                                        Z tytułu dokonania w pojeździe samochodowym, innym niż samochód osobowy, zarejestrowanym na terytorium kraju, zmian konstrukcyjnych zmieniających rodzaj tego pojazdu na samochód osobowy. 
+                                                </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:enumeration>
+										<xs:enumeration value="3">
+                                            <xs:annotation>
+                                                <xs:documentation>
+                                                                        Z tytułu nabycia lub posiadania samochodu osobowego niezarejestrowanego wcześniej na terytorium kraju, jeżeli nie można ustalić podmiotu, który dokonał wcześniejszej czynności podlegającej opodatkowaniu, i nie ustalono, że akcyza została zapłacona. 
+                                                </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:enumeration>
+									</xs:restriction>
+								</xs:simpleType>							
+						</xs:attribute>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="car"
+                            minOccurs="0"
+                            maxOccurs="999">
+                    <xs:annotation>
+                        <xs:documentation source="doc"
+                                          xml:lang="pl">Lista samochodów.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="no"
+                                        type="xs:int"
+                                        minOccurs="1"
+                                        maxOccurs="1">
+                                <xs:annotation>
+                                    <xs:documentation source="doc"
+                                                      xml:lang="pl">Liczba porządkowa zwracanej pozycji.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="dateOfPayment"
+                                        type="xs:date"
+                                        minOccurs="1"
+                                        maxOccurs="1">
+                                <xs:annotation>
+                                    <xs:documentation source="doc"
+                                                      xml:lang="pl">Data zapłaty akcyzy.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="VIN"
+                                        type="xs:string"
+                                        minOccurs="1"
+                                        maxOccurs="1">
+                                <xs:annotation>
+                                    <xs:documentation source="doc"
+                                                      xml:lang="pl">Numer identyfikacyjny pojazdu VIN albo numer nadwozia, podwozia lub ramy.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="makeModel"
+                                        type="xs:string"
+                                        minOccurs="1"
+                                        maxOccurs="1">
+                                <xs:annotation>
+                                    <xs:documentation source="doc"
+                                                      xml:lang="pl">Marka i model samochodu.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="capacity"
+                                        type="xs:string"
+                                        minOccurs="0"
+                                        maxOccurs="1">
+                                <xs:annotation>
+                                    <xs:documentation source="doc"
+                                                      xml:lang="pl">Pojemność silnika.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+							<xs:element name="exciseAmount"
+							            type="tp3:ZAmountC"
+							            minOccurs="0">
+								<xs:annotation>
+									<xs:documentation source="doc"
+									                  xml:lang="pl">Wysokość zapłaconej akcyzy.</xs:documentation>
+								</xs:annotation>
+                            </xs:element>
+							<xs:element name="yearOfProduction"
+							            type="xs:gYear"
+							            minOccurs="1"
+							            maxOccurs="1">		
+								<xs:annotation>
+									<xs:documentation source="doc"
+									                  xml:lang="pl">Rok produkcji.</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="condition"
+							            minOccurs="1"
+							            maxOccurs="1">		
+								<xs:annotation>
+									<xs:documentation source="doc"
+									                  xml:lang="pl">Stan pojazdu.</xs:documentation>	
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="nieuszkodzony"/>
+										<xs:enumeration value="uszkodzony"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="message"
+                            type="xs:string"
+                            minOccurs="0"
+                            maxOccurs="999">
+                    <xs:annotation>
+                        <xs:documentation source="doc"
+                                          xml:lang="pl">Komunikaty błędu lub informacje dla podatnika.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>                
+                <xs:element name="doc"
+                            type="xs:base64Binary"
+                            minOccurs="0"
+                            maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation source="doc"
+                                          xml:lang="pl">Metadane dokumentu PDF potwierdzenia zapłaty akcyzy.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="signature"
+                            type="xs:string"
+                            minOccurs="0"
+                            maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation source="doc"
+                                          xml:lang="pl">Sygnatura dla dokumentu.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+            <xs:attribute name="version"
+                          type="tp3:ZVersion"
+                          use="required">
+                <xs:annotation>
+                    <xs:documentation source="doc"
+                                      xml:lang="pl">Wersja schematu, z którą zgodny jest komunikat.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="selfRef"
+                          type="tp3:ZSelfRef"
+                          use="optional">
+                <xs:annotation>
+                    <xs:documentation source="doc"
+                                      xml:lang="pl">Numer własny komunikatu.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

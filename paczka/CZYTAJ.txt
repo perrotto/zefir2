@@ -1,0 +1,18 @@
+POTWIERDZENIA ZAPLATY AKCYZY ZEFIR2 - wersja przenosna dla Windows
+
+1. Rozpakuj caly folder (np. na Pulpit, do Dokumentow lub na pendrive).
+2. Kliknij dwukrotnie uruchom.bat - aplikacja otworzy sie w przegladarce
+   (adres http://127.0.0.1:5010).
+3. Nie zamykaj czarnego okna podczas pracy.
+
+PIERWSZE URUCHOMIENIE: wejdz w Ustawienia, wybierz srodowisko (zacznij od Test),
+wpisz login (e-mail) i haslo konta PUESC, kliknij "Odczytaj z WSDL",
+a potem "Test polaczenia".
+
+Twoje dane sa w folderze "dane" (baza, XML-e, PDF-y potwierdzen w dane\potwierdzenia).
+KOPIA ZAPASOWA = skopiuj folder "dane" w bezpieczne miejsce.
+
+AKTUALIZACJA: rozpakuj nowa wersje i przenies do niej folder "dane" ze starej.
+
+Gdy Windows pokaze "System Windows ochronil ten komputer":
+kliknij "Wiecej informacji" -> "Uruchom mimo to".

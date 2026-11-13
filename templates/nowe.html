@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Nowe zapytanie{% endblock %}
+{% block body %}
+<h1>Nowe zapytanie PZAS</h1>
+<p class="lead">Potwierdzenie zapłaty akcyzy można pobrać po numerze VIN albo po numerze UPO deklaracji (np. AKC-US).
+Potwierdzenie jest dostępne dopiero po zaksięgowaniu wpłaty w ZEFIR2.</p>
+<form method="post" class="card stack">
+  <div class="tabs">
+    <label><input type="radio" name="tryb" value="vin" checked> Po numerach VIN</label>
+    <label><input type="radio" name="tryb" value="upo"> Po numerze UPO deklaracji</label>
+  </div>
+  <div class="panel" id="p-vin">
+    <label>Numery VIN (albo nadwozia/podwozia/ramy) – po jednym w wierszu, każdy to osobne zapytanie
+      <textarea name="viny" class="vins" placeholder="WAUZZZ8K9EA000000&#10;WVWZZZ1KZ8W000000"></textarea></label>
+  </div>
+  <div class="panel" id="p-upo" hidden>
+    <div class="row">
+      <label class="grow">Numer UPO deklaracji<input name="upo" class="mono"></label>
+      <label>Kwota z deklaracji (zł, bez groszy)<input name="kwota" inputmode="numeric" placeholder="np. 3100"></label>
+    </div>
+    <label class="check"><input type="checkbox" name="zbiorcze" value="1"> Potwierdzenie zbiorcze – wszystkie VIN z tej deklaracji</label>
+    <p class="hint">Przy potwierdzeniu zbiorczym ZEFIR2 sprawdza kwotę dokumentu, by ustalić, czy masz prawo je pobrać.</p>
+  </div>
+  <div class="row">
+    <button class="btn primary" name="akcja" value="wyslij">Wyślij do PUESC ({{ srodowisko }})</button>
+    <button class="btn" name="akcja" value="przygotuj">Tylko przygotuj XML</button>
+  </div>
+</form>
+<script>
+const pokaz=()=>{const t=document.querySelector('input[name=tryb]:checked').value;
+  document.getElementById('p-vin').hidden=t!=='vin'; document.getElementById('p-upo').hidden=t!=='upo';};
+document.querySelectorAll('input[name=tryb]').forEach(r=>r.addEventListener('change',pokaz));
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Zapytanie #{{ z.id }}{% endblock %}
+{% block body %}
+{% set st = STATUSY.get(z.status, (z.status, 'due')) %}
+<a class="back" href="{{ url_for('lista') }}">← Zapytania</a>
+<div class="head">
+  <div>
+    <h1>Zapytanie #{{ z.id }} <span class="pill big {{ st[1] }}">{{ st[0] }}</span></h1>
+    <p class="sub">Utworzono {{ z.utworzono|dt }} · środowisko {{ z.srodowisko }}{% if z.sprawdzono %} · ostatnio sprawdzono {{ z.sprawdzono|dt }}{% endif %}</p>
+  </div>
+  <div class="row">
+    {% if z.sys_ref %}<form method="post" action="{{ url_for('sprawdz') }}"><input type="hidden" name="id" value="{{ z.id }}"><button class="btn primary">Sprawdź odpowiedź</button></form>{% endif %}
+    {% if z.status in ('nowe','blad','odrzucone') %}<form method="post" action="{{ url_for('wyslij_ponownie', zid=z.id) }}"><button class="btn">{{ 'Wyślij' if z.status=='nowe' else 'Wyślij ponownie' }}</button></form>{% endif %}
+    {% if z.pdf %}<a class="btn primary" href="{{ url_for('pdf', zid=z.id) }}" target="_blank">Otwórz PDF</a>
+      <a class="btn" href="{{ url_for('pdf', zid=z.id, pobierz=1) }}">Pobierz PDF</a>{% endif %}
+  </div>
+</div>
+
+<div class="cols">
+<div>
+  <div class="card">
+    <h2>Zapytanie</h2>
+    <dl class="facts">
+      <div><dt>VIN</dt><dd class="mono">{{ z.vin or '—' }}</dd></div>
+      <div><dt>UPO deklaracji</dt><dd class="mono">{{ z.upo or '—' }}</dd></div>
+      <div><dt>Zbiorcze</dt><dd>{{ 'tak' if z.zbiorcze else 'nie' }}</dd></div>
+      <div><dt>Kwota dokumentu</dt><dd>{{ z.kwota or '—' }}</dd></div>
+      <div class="wide"><dt>sysRef (PUESC)</dt><dd class="mono">{{ z.sys_ref or '—' }}</dd></div>
+      {% if z.opis %}<div class="wide"><dt>Opis</dt><dd>{{ z.opis }}</dd></div>{% endif %}
+    </dl>
+  </div>
+
+  {% if odp %}
+  <div class="card">
+    <h2>Odpowiedź ZEFIR2 {{ odp.docNo }}</h2>
+    <dl class="facts">
+      <div><dt>Wystawiono</dt><dd>{{ odp.dateOfIssue|dt }}</dd></div>
+      <div class="wide"><dt>Organ</dt><dd>{{ odp.organ or '—' }}</dd></div>
+      <div class="wide"><dt>Przedmiot opodatkowania</dt><dd>{{ odp.wariant }} – {{ odp.wariant_opis }}</dd></div>
+      {% for m in odp.komunikaty %}<div class="wide"><dt>Komunikat</dt><dd>{{ m }}</dd></div>{% endfor %}
+    </dl>
+    {% if odp.auta %}
+    <div class="tablewrap"><table class="grid">
+      <thead><tr><th>Lp.</th><th>VIN</th><th>Marka i model</th><th>Rok</th><th>Pojemność</th><th>Stan</th><th>Data zapłaty</th><th class="num">Akcyza</th></tr></thead>
+      <tbody>{% for a in odp.auta %}<tr><td>{{ a.no }}</td><td class="mono">{{ a.VIN }}</td><td>{{ a.makeModel }}</td>
+        <td>{{ a.yearOfProduction }}</td><td>{{ a.capacity }}</td><td>{{ a.condition }}</td><td>{{ a.dateOfPayment|dt }}</td>
+        <td class="num">{{ a.exciseAmount|zl }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Dokumenty z PUESC</h2>
+    {% if dokumenty %}
+      <table class="grid"><tbody>
+      {% for d in dokumenty %}<tr><td class="nowrap">{{ d.pobrano|dt }}</td><td>{{ d.opis }}</td>
+        <td><a href="{{ url_for('dokument', did=d.id) }}">XML</a></td></tr>{% endfor %}
+      </tbody></table>
+    {% else %}<p class="sub">Jeszcze nic nie przyszło.</p>{% endif %}
+  </div>
+</div>
+<div>
+  <div class="card">
+    <h2>Wysłany XML</h2>
+    <pre class="code">{{ xml }}</pre>
+  </div>
+  <form method="post" action="{{ url_for('usun', zid=z.id) }}" onsubmit="return confirm('Usunąć zapytanie z listy?')">
+    <button class="link danger">Usuń zapytanie z listy</button></form>
+</div>
+</div>
+{% endblock %}

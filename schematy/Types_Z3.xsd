@@ -1,0 +1,878 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+    targetNamespace="http://www.e-clo.pl/ZEFIR2/eZefir2/xsd/v3_0/Types.xsd"
+    xmlns:tp3="http://www.e-clo.pl/ZEFIR2/eZefir2/xsd/v3_0/Types.xsd"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="3_0"
+    xml:lang="PL">
+
+	<xs:complexType name="ZConcession">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Dane o
+                zezwoleniu/koncesji. W przypadku gdy w ramach właściwości miejscowej
+                jednego naczelnika urzędu
+                skarbowego podatnik posiada więcej niż jedno
+                zezwolenie/koncesję , podatnik
+                powinien złożyć tyle załączników, ile
+                zezwoleń/koncesji posiada.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="formNumber" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Numer załącznika.</xs:documentation>
+				<xs:documentation source="box">4</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="2"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="numberOfConcession" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Numer zezwolenia/koncesji.</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="50"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="licensingAuthority" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Organ wydający zezwolenie/koncesję.</xs:documentation>
+			</xs:annotation> 
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="50"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="licenseIssueDate" type="xs:date" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Data wydania zezwolenia.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="totalOfTax" type="tp3:ZAmountP" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Suma kwot podatku.</xs:documentation>
+				<xs:documentation source="rule">R14</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ZStateMonopoly">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Dane o
+                realizacji monopolu państwa. Dotyczy wyłącznie podmiotów
+                prowadzących działalność w zakresie loterii pieniężnych i gry
+                telebingo.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="data" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Dane o
+                    utworzeniu jednoosobowej spółki Skarbu Państwa - art.5 ust.1 i 2
+                    ustawy.
+				</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="1024" />
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="creationDate" type="tp3:ZDate" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Data utworzenia.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ZCalculOfAmountOfExciseDuty">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Dane
+                dotyczące obliczenia kwoty podatku akcyzowego.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="totalAmountOfTax" type="tp3:ZAmountT" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Razem obliczony podatek.</xs:documentation>
+				<xs:documentation source="box">11</xs:documentation>
+				<xs:documentation source="rule">AKC_R23</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="reductions" type="tp3:ZAmountT" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Zwolnienia i obniżenia.</xs:documentation>
+				<xs:documentation source="box">12</xs:documentation>
+				<xs:documentation source="rule">AKC_R24</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="totalOfTax" type="tp3:ZAmountT" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Ogółem
+                    podatek.
+				</xs:documentation>
+				<xs:documentation source="box">13</xs:documentation>
+				<xs:documentation source="rule">AKC_R25</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ZCalculationOfTaxOnGame">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Dane dotyczące obliczenia kwoty podatku podatku od gier.</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="typeOfGame" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Rodzaj gry.</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="1">
+						<xs:annotation>
+							<xs:documentation>Gry w kasynie (cylindryczne, na automatach,  w karty z wyłączeniem pokera rozgrywanego w formie turnieju i pozostałe).</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="2">
+						<xs:annotation>
+							<xs:documentation>Gry bingo pieniężne.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="3">
+						<xs:annotation>
+							<xs:documentation>Odgadywanie wyników współzawodnictwa ludzi.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="4">
+						<xs:annotation>
+							<xs:documentation>Odgadywanie wyników współzawodnictwa zwierząt.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="5">
+						<xs:annotation>
+							<xs:documentation>Pozostałe rodzaje zakładów wzajemnych.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="6">
+						<xs:annotation>
+							<xs:documentation>Loterie pieniężne.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="7">
+						<xs:annotation>
+							<xs:documentation>Gra telebingo.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="8">
+						<xs:annotation>
+							<xs:documentation>Loterie audioteksowe.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="9">
+						<xs:annotation>
+							<xs:documentation>Gry liczbowe.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="10">
+						<xs:annotation>
+							<xs:documentation>Bingo fantowe.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="11">
+						<xs:annotation>
+							<xs:documentation>Loteria fantowa.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="12">
+						<xs:annotation>
+							<xs:documentation>Gra w pokera.</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="tax" type="tp3:ZAmountC" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Podstawa opodatkowania.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="taxRatePercentage" type="tp3:ZPercentage" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Stawka podatku wyrażona ułamkiem dziesiętnym z dokładnością do 4 miejsc po przecinku.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="amountOfTax" type="tp3:ZAmountC" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Kwota podatku.	</xs:documentation>
+				<xs:documentation source="rule">R8</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ZDailyAmount">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Informacja o kwotach wpłat dziennych.</xs:documentation>
+			<xs:documentation source="box">E</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="taxObligationCreationDate" type="tp3:ZDate" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Data powstania obowiązku podatkowego.</xs:documentation>
+				<xs:documentation source="box">E.b</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="dueAmount" type="tp3:ZAmountC" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Kwota 
+                    podatku akcyzowego z dnia powstania obowiązku podatkowego.
+				</xs:documentation>
+				<xs:documentation source="box">E.c</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="dateOfPaym" type="tp3:ZDate" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Data dokonania wpłaty dziennej.</xs:documentation>
+				<xs:documentation source="box">E.d</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="amountOfExcessDailyPaymPrevDecl" type="tp3:ZAmountC" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Kwota
+                    nadwyżki wpłat z poprzedniej deklaracji zaliczona na poczet wpłat dziennych.
+				</xs:documentation>
+				<xs:documentation source="box">E.e</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="amountOfDailyPaym" type="tp3:ZAmountC" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Kwota dokonanej wpłaty dziennej.</xs:documentation>
+				<xs:documentation source="box">E.f</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ZStatement">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">OŚWIADCZENIE
+                PODATNIKA LUB OSOBY REPREZENTUJĄCEJ PODATNIKA
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="representative" type="tp3:ZRepresentative" minOccurs="1" maxOccurs="1"/>
+		</xs:sequence>
+		<xs:attribute name="declarationDate" type="tp3:ZDate" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Data wypełnienia dokumentu.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ZExtStatement">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">OŚWIADCZENIE
+                PODATNIKA LUB OSOBY REPREZENTUJĄCEJ PODATNIKA
+			</xs:documentation>
+		</xs:annotation>
+		<xs:complexContent>
+			<xs:extension base="tp3:ZStatement">
+				<xs:attribute name="affirmation" type="xs:string" use="required"
+                              fixed="Oświadczam, że są mi znane przepisy Kodeksu karnego skarbowego o odpowiedzialności za podanie danych niezgodnych z rzeczywistością.">
+					<xs:annotation>
+						<xs:documentation source="doc" xml:lang="pl">Oświadczenie podatnika.</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="ZRepresentative">
+		<xs:attribute name="repFirstName" type="xs:string" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Pierwsze imię pełnomocnika.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="repSurname" type="xs:string" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Nazwisko pełnomocnika.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="phone" type="xs:string" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">
+                    Numer telefonu podatnika lub osoby reprezentującej podatnika.
+				</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="email" type="xs:string" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">
+                    Adres e-mail podatnika lub osoby reprezentującej podatnika.
+				</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ZCarDetails">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Dane identyfikujące samochód.</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="make" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Marka samochodu.</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="22"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="model" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Model samochodu.</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="25"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="yearOfProduction" type="xs:gYear" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Rok produkcji.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="electrical" type="xs:boolean" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Pojazd elektryczny.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="capacityOfEngine" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Pojemność skokowa silnika.</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="10" />
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="VIN" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Numer identyfikacyjny VIN (nadwozia/podwozia).</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="20" />
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="collectible" type="xs:boolean" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Samochód kolekcjonerski.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="description" type="xs:string" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Informacje dodatkowe.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ZINFHeader">
+		<xs:attribute name="identifier" type="tp3:ZIdentification" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Pole na wprowadzenie NIP lub PESEL Podatnika.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="period" type="tp3:ZPeriod" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Rok i miesiąc, za jaki została złożona deklaracja.</xs:documentation>
+				<xs:documentation source="box">-</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>        
+		<xs:attribute name="customsOffice" type="tp3:ZCustomsOffice" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Urząd celny, do którego adresowana jest informacja.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="submissionAim" type="tp3:ZSubmissionAim" use="required">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Informacja czy dokument jest deklaracją czy korektą.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="orgDocNo" type="tp3:ZDocNo" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Numer dokumentu pierwotnego, którego dotyczy korekta.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="justification" use="optional">
+			<xs:annotation>
+				<xs:documentation source="doc" xml:lang="pl">Pole tekstowe pozwalające na wprowadzenie informacji uzasadniającej korektę.</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="256" />
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+
+
+	<xs:simpleType name="ZNumeric">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Typ liczbowy.</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal">
+			<xs:whiteSpace value="collapse" />
+			<xs:totalDigits value="5" />
+			<xs:fractionDigits value="0" />
+			<xs:minExclusive value="0" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZCharacter">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Typ znakowy ograniczony do jednej linii.</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:normalizedString">
+			<xs:maxLength value="240"/>
+			<xs:whiteSpace value="collapse"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZPercentage">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Wartość ułamkowa z dokładnością do 4 miejsc po przecinku.</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal">
+			<xs:totalDigits value="5"/>
+			<xs:fractionDigits value="4"/>
+			<xs:minInclusive value="0"/>
+			<xs:maxInclusive value="1"/>
+			<xs:whiteSpace value="collapse"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZNumber">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Liczby naturalne.</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal">
+			<xs:whiteSpace value="collapse" />
+			<xs:totalDigits value="14" />
+			<xs:minInclusive value="0" />
+			<xs:fractionDigits value="0" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZAmountE">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Wartość liczbowa/kwotowa z dokładnością do 3 miejsc po przecinku
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal">
+			<xs:totalDigits value="15" />
+			<xs:fractionDigits value="3" />
+			<xs:minInclusive value="0" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZAmountT">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Wartość liczbowa/kwotowa zaokrąglone do pełnych zł</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal">
+			<xs:totalDigits value="12" />
+			<xs:fractionDigits value="0" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZAmountC">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Wartość liczbowa/kwotowa z dokładnością do 2 miejsc po przecinku</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal">
+			<xs:totalDigits value="14" />
+			<xs:fractionDigits value="2" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZAmountP">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Wartość zaokrąglone do pełnych zł nieujemne wyrażona w zł</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal">
+			<xs:minInclusive value="0" />
+			<xs:totalDigits value="12" />
+			<xs:fractionDigits value="0" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZDate">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Typ daty</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:date">
+			<xs:minInclusive value="1900-01-01" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZPeriod">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Typ daty w formacie RRRR-MM</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:gYearMonth" />
+	</xs:simpleType>
+	<xs:simpleType name="ZEmail">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Atrybut będący adresem e-mail</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="240"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZIdentification">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Numer identyfikujący podatnika (NIP lub PESEL)</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="\d{10}" />
+			<xs:pattern value="\d{11}" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZPESEL">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Numer PESEL</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="11" />
+			<xs:pattern value="\d{11}" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZNIP">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Numer NIP; bez myślników, 10 cyfr</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="10" />
+			<xs:pattern value="\d{10}" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZNrREGON">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Numer REGON</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:minLength value="9" />
+			<xs:maxLength value="14" />
+			<xs:pattern value="\d{9}" />
+			<xs:pattern value="\d{14}" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZName">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Pierwsze imię</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30" />
+			<xs:minLength value="1" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZSurname">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Nazwisko</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="81" />
+			<xs:whiteSpace value="collapse" />
+			<xs:minLength value="1" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZCity">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Typ określający nazwę miejscowości</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="56" />
+			<xs:minLength value="1" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZStreet">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Nazwa ulicy</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="65" />
+			<xs:minLength value="1" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZBuildingNumber">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Numer budynku</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="9" />
+			<xs:minLength value="1" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZSuiteNumber">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Numer lokalu</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="10"/>
+			<xs:minLength value="1"/>
+			<xs:whiteSpace value="collapse"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZPostalCode">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Kod pocztowy
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="8" />
+			<xs:minLength value="1" />
+			<xs:whiteSpace value="collapse" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZSubmissionAim">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Określa cel złożenia formularza, czy to jest złożenie, czy korekta dokumentu</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Deklaracja"/>
+			<xs:enumeration value="Korekta"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZCustomsOffice">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Urząd celny, do którego adresowana jest deklaracja</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="6"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZTaxOffice">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Urząd skarbowy, do którego adresowana jest deklaracja</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="6"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZCodeCN">
+		<xs:annotation>
+			<xs:documentation>Kod CN</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:minLength value="4"/>
+			<xs:maxLength value="8"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZGroupOfGoodsName">
+		<xs:annotation>
+			<xs:documentation>Nazwa grupy wyrobów</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="512"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZGroupOfGoodsNameEnum">
+		<xs:annotation>
+			<xs:documentation>Grupy wyrobów</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="spirytusowe">
+				<xs:annotation>
+					<xs:documentation>Alkohol etylowy</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="winiarskie">
+				<xs:annotation>
+					<xs:documentation>Wyroby winiarskie</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="piwo">
+				<xs:annotation>
+					<xs:documentation>Piwo</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="paliwa-silnikowe">
+				<xs:annotation>
+					<xs:documentation>Paliwa silnikowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="samochody-osobowe">
+				<xs:annotation>
+					<xs:documentation>Samochody osobowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="tytoniowe">
+				<xs:annotation>
+					<xs:documentation>Wyroby tytoniowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="paliwa-opalowe">
+				<xs:annotation>
+					<xs:documentation>Paliwa opałowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="gaz">
+				<xs:annotation>
+					<xs:documentation>Gaz do napędu</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="oleje-smarowe">
+				<xs:annotation>
+					<xs:documentation>Oleje smarowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="susz-tytoniowy">
+				<xs:annotation>
+					<xs:documentation>Susz tytoniowy</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="weglowe">
+				<xs:annotation>
+					<xs:documentation>Wyroby węglowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZGroupOfGoodsNameZPNWEnum">
+		<xs:annotation>
+			<xs:documentation>Grupy wyrobów na potrzeby deklaracji ZPNW. W stosunku do typu ZGroupOfGoodsNameEnum różni się brakiem wartości "samochody-osobowe"</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="spirytusowe">
+				<xs:annotation>
+					<xs:documentation>Alkohol etylowy</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="winiarskie">
+				<xs:annotation>
+					<xs:documentation>Wyroby winiarskie</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="piwo">
+				<xs:annotation>
+					<xs:documentation>Piwo</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="paliwa-silnikowe">
+				<xs:annotation>
+					<xs:documentation>Paliwa silnikowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="tytoniowe">
+				<xs:annotation>
+					<xs:documentation>Wyroby tytoniowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="paliwa-opalowe">
+				<xs:annotation>
+					<xs:documentation>Paliwa opałowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="gaz">
+				<xs:annotation>
+					<xs:documentation>Gaz do napędu</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="oleje-smarowe">
+				<xs:annotation>
+					<xs:documentation>Oleje smarowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="susz-tytoniowy">
+				<xs:annotation>
+					<xs:documentation>Susz tytoniowy</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="weglowe">
+				<xs:annotation>
+					<xs:documentation>Wyroby węglowe</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZDocNo">
+		<xs:annotation>
+			<xs:documentation>Numer dokumentu</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="40"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZShortages">
+		<xs:annotation>
+			<xs:documentation>Rodzaje ubytków</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="UB">
+				<xs:annotation>
+					<xs:documentation>Ubytek</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="CZ">
+				<xs:annotation>
+					<xs:documentation>Całkowite zniszczenie</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZFormNo">
+		<xs:annotation>
+			<xs:documentation>Numer formularza załącznika. Podatnik może załączyć wiele formularzy załącznika tego samego typu.</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="4"></xs:maxLength>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZProvinceCode">
+		<xs:annotation>
+			<xs:documentation>Kod województwa, dwucyfrowy</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="2"></xs:length>
+			<xs:pattern value="\d{2}"></xs:pattern>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZDistrictCode">
+		<xs:annotation>
+			<xs:documentation>Kod powiatu, dwucyfrowy</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="2"></xs:length>
+			<xs:pattern value="\d{2}"></xs:pattern>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZCommuneCode">
+		<xs:annotation>
+			<xs:documentation>Kod województwa, siedmiocyfrowy (pełny, zawierający kod województwa i powiatu)</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="7"></xs:length>
+			<xs:pattern value="\d{7}"></xs:pattern>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZVersion">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Oznaczenie wersji schematu, z którą zgodny jest komunikat. 
+                Format: V_R, gdzie V - co najmniej jedna cyfra oznaczająca główną wersję, R - co najmniej jedna cyfra oznaczającą wersję pośrednią.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="\d+(_)\d+"></xs:pattern>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ZSelfRef">
+		<xs:annotation>
+			<xs:documentation source="doc" xml:lang="pl">Identyfikator (numer własny) komunikatu.
+                Format: 
+                - identyfikator: 11 cyfr dla, NIP lub PESEL, w przypadku NIP dopisujemy 0;
+                - okres: 6 znaków, rok i miesiąc;
+                - numer własny dokumentu: 19 znaków [0-9][A-Z].
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="\d{11}\d{6}[0-9A-Z]{19}"></xs:pattern>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>
