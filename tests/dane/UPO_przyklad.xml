@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Potwierdzenie xmlns="http://www.e-clo.pl/ZEFIR2/eZefir2/xsd/v6_0/Potwierdzenie.xsd" xmlns:ns2="http://www.w3.org/2000/09/xmldsig#" wersjaSchemy="6.0">
+	<NazwaPodmiotuPrzyjmujacego>Ministerstwo Finansów</NazwaPodmiotuPrzyjmujacego>
+	<NumerReferencyjny>d945ff02b70f79580558790a2a526e89</NumerReferencyjny>
+	<SkrotDokumentu>kX9R15j4HZSXA2lFz+AvCV9PKoI=[Rp7EqVlA7Oa0thmenlFwdQ==]</SkrotDokumentu>
+	<SkrotZlozonejStruktury>Rp7EqVlA7Oa0thmenlFwdQ==</SkrotZlozonejStruktury>
+	<NazwaStrukturyLogicznej>d41d8cd98f00b204e9800998ecf8427e</NazwaStrukturyLogicznej>
+	<DataWplyniecia>2024-01-05T11:58:12.394+01:00</DataWplyniecia>
+	<StempelCzasu>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</StempelCzasu>
+	<NIP1>1111111111</NIP1>
+	<KodUrzedu>1209</KodUrzedu>
+	<NazwaUrzedu>Urząd Skarbowy Kraków-Nowa Huta</NazwaUrzedu>
+	<KodFormularza>ZPNW-ZA</KodFormularza>
+	<Przyjeto>true</Przyjeto>
+	<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="id-89ebee88ee5f2ddd8880a16a5ae2e670">
+		<ds:SignedInfo>
+			<ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments"/>
+			<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+			<ds:Reference Id="r-id-89ebee88ee5f2ddd8880a16a5ae2e670-1" URI="">
+				<ds:Transforms>
+					<ds:Transform Algorithm="http://www.w3.org/2002/06/xmldsig-filter2">
+						<dsig-filter2:XPath xmlns:dsig-filter2="http://www.w3.org/2002/06/xmldsig-filter2" Filter="subtract">/descendant::ds:Signature</dsig-filter2:XPath>
+					</ds:Transform>
+					<ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+				</ds:Transforms>
+				<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+				<ds:DigestValue>0fKt3+ur9PXWNbuIfbghQr7ori3bElorFpG3B8UREOY=</ds:DigestValue>
+			</ds:Reference>
+			<ds:Reference Type="http://uri.etsi.org/01903#SignedProperties" URI="#ICB_PL-xades-id-89ebee88ee5f2ddd8880a16a5ae2e670">
+				<ds:Transforms>
+					<ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments"/>
+				</ds:Transforms>
+				<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+				<ds:DigestValue>wjIXAfDJb4GU+zNHlSlsGvQ4NkyyN0T6zxZjjfl7klg=</ds:DigestValue>
+			</ds:Reference>
+			<ds:Reference URI="#keyInfo-id-89ebee88ee5f2ddd8880a16a5ae2e670">
+				<ds:Transforms>
+					<ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+				</ds:Transforms>
+				<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+				<ds:DigestValue>Myq4P5bUDlOLoYjJCuxF2UUfT2fAjpXNl4DvYA7q7BU=</ds:DigestValue>
+			</ds:Reference>
+		</ds:SignedInfo>
+		<ds:SignatureValue Id="value-id-89ebee88ee5f2ddd8880a16a5ae2e670">tu6KDeVQEPvcAXT3oXz0OZpRJ6sGNy/jNRq+FJeicyIZLgICdrdcJhb3qxOj9PXH1dh+YvI4RrbfGO/gA+xb+3x/Y0Rr1N7JmbVOQ8gSxtWyfAyU1ZyibImwY+oJ96Gxm1/m5/3c5z7YZfJk1VXnWg5yMwkP3v16QsPkH7uWNt7J8TsZA336n2ca4dTGnI/yF/0BkQuNIEpu8dQZfax5YS1bjkguQy+Ry8XrERWSy0hOoPLRvYe0e1dGStQlDEUBfjRu4lXRNohSVY8m0BN+MgAz/kOWkWvOYyqK65gyOj5klPFGXaFSmHiz7JSio39zh6FYpQFohIDsMZ1bbQTjcw==</ds:SignatureValue>
+		<ds:KeyInfo Id="keyInfo-id-89ebee88ee5f2ddd8880a16a5ae2e670">
+			<ds:X509Data>
+				<ds:X509Certificate>MIIEbjCCA1agAwIBAgICKoYwDQYJKoZIhvcNAQELBQAwgYcxCzAJBgNVBAYTAlBMMR4wHAYDVQQKDBVNaW5pc3RlcnN0d28gRmluYW5zb3cxJzAlBgNVBAsMHktyYWpvd2EgQWRtaW5pc3RyYWNqYSBTa2FyYm93YTEvMC0GA1UEAwwmVEVTVCBDQ0sgTUYgSW5mcmFzdHJ1a3R1cmEgaSBBcGxpa2FjamUwHhcNMjMwNTE3MTMyMzIwWhcNMjgwMzE5MDY0NTQwWjBvMQswCQYDVQQGEwJQTDEeMBwGA1UECgwVTWluaXN0ZXJzdHdvIEZpbmFuc293MScwJQYDVQQLDB5LcmFqb3dhIEFkbWluaXN0cmFjamEgU2thcmJvd2ExFzAVBgNVBAMMDnRlc3Rvd3kgWkVGSVIyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvCC6Gn+Y7OPmtmD5RGxYvfVfshyQvEuiAPDfFlcnk4YHCvWDompFkQEP3NIiyFzi4Zgr5teZkHcl7Er/so1+Q+C+5virz2dlak9kBuJTovXBKqBKpjSnJ/4cU+PWGd1qr8FxEkMCtbhLJ1efZNAnSFklV0ZFN3SdBlM0sZKfDl98xFvRsaWVLKRbIbU+FLuwuLwZsLZWnaFihUAmI9pMCwc92PogdJCmSGGDwQZ0bNDUMOUIMm8mHdZWdHVWhQKhDQkJWEQ9dCfm5YOV/4TT7DtOcIonumcDMTStKLj+D2KTEUtjmdmLuvUHh+vyMEYfxIMeVHFIO3r6TupoSx5h9wIDAQABo4H6MIH3MAwGA1UdEwEB/wQCMAAwHQYDVR0OBBYEFIM+FAgqEbJhVuXdRlpuD03Ax+NNMB8GA1UdIwQYMBaAFAvYrzCeF2VxPykSk2Oelh/+WY5iMA4GA1UdDwEB/wQEAwIGQDAWBgNVHSUBAf8EDDAKBggrBgEFBQcDBDA/BggrBgEFBQcBAQQzMDEwLwYIKwYBBQUHMAGGI2h0dHA6Ly90ZXN0b2NzcHBraXNjLm1mLmdvdi5wbC9PQ1NQMD4GA1UdHwQ3MDUwM6AxoC+GLWh0dHBzOi8vcHVlc2MuZ292LnBsL3BraS9jcmwvdGVzdG1maW5mYXBsLmNybDANBgkqhkiG9w0BAQsFAAOCAQEAUeYr/F+OXznFaiGYFLONSx9dfDknNvEg6dLcwbyKTCDnfHozK2lYUI8LkJeqUE0tJPEPaF0GKiLzxfaR78Oja+Kz08seCPQh+FoXhdZoN5/q53dPH0QPEkSgUqRJlWkU8qUQPne4JzxaSPMzMjLmRYdLBnnb5OXfVzkctu1AcXEc/XyaGQzYAQUhASc4Ox4fz9RmF5+yM+lkk5kpgsKc3ZLZz609wQZ6NWK2Qya6nHnbpGwQtuknTCiWKVaywOYtd0ck8IVHNThRxg4+rNGn9sduXhe9eiG09tdEj18qqSBU3DIifkrdy/XBnIv2n747kXfcLZUksbrl0s/Kylljtw==</ds:X509Certificate>
+			</ds:X509Data>
+		</ds:KeyInfo>
+		<ds:Object>
+			<xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" Target="#id-89ebee88ee5f2ddd8880a16a5ae2e670">
+				<xades:SignedProperties Id="ICB_PL-xades-id-89ebee88ee5f2ddd8880a16a5ae2e670">
+					<xades:SignedSignatureProperties>
+						<xades:SigningTime>2024-01-05T10:58:24Z</xades:SigningTime>
+						<xades:SigningCertificate>
+							<xades:Cert>
+								<xades:CertDigest>
+									<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+									<ds:DigestValue>wqLgGtck5wVcbcR65E0tEF47wim+VfqSEptynJDHgn4=</ds:DigestValue>
+								</xades:CertDigest>
+								<xades:IssuerSerial>
+									<ds:X509IssuerName>CN=TEST CCK MF Infrastruktura i Aplikacje,OU=Krajowa Administracja Skarbowa,O=Ministerstwo Finansow,C=PL</ds:X509IssuerName>
+									<ds:X509SerialNumber>10886</ds:X509SerialNumber>
+								</xades:IssuerSerial>
+							</xades:Cert>
+						</xades:SigningCertificate>
+					</xades:SignedSignatureProperties>
+					<xades:SignedDataObjectProperties>
+						<xades:DataObjectFormat ObjectReference="#r-id-89ebee88ee5f2ddd8880a16a5ae2e670-1">
+							<xades:MimeType>application/octet-stream</xades:MimeType>
+						</xades:DataObjectFormat>
+					</xades:SignedDataObjectProperties>
+				</xades:SignedProperties>
+			</xades:QualifyingProperties>
+		</ds:Object>
+	</ds:Signature>
+</Potwierdzenie>
