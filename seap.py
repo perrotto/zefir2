@@ -20,7 +20,8 @@ import hashlib
 import os
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -33,6 +34,8 @@ NS_WSU = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-uti
 NS_WSA = "http://www.w3.org/2005/08/addressing"
 PASSWORD_DIGEST = ("http://docs.oasis-open.org/wss/2004/01/"
                    "oasis-200401-wss-username-token-profile-1.0#PasswordDigest")
+PASSWORD_TEXT = ("http://docs.oasis-open.org/wss/2004/01/"
+                 "oasis-200401-wss-username-token-profile-1.0#PasswordText")
 BASE64_BINARY = ("http://docs.oasis-open.org/wss/2004/01/"
                  "oasis-200401-wss-soap-message-security-1.0#Base64Binary")
 
@@ -74,8 +77,37 @@ def password_digest(nonce: bytes, created: str, skrot: str) -> str:
     return base64.b64encode(h).decode("ascii")
 
 
-def teraz_utc() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def teraz_utc(przesuniecie: float = 0.0, ms: bool = False) -> str:
+    t = datetime.now(timezone.utc) + timedelta(seconds=przesuniecie)
+    return t.strftime("%Y-%m-%dT%H:%M:%S") + (f".{t.microsecond // 1000:03d}" if ms else "") + "Z"
+
+
+# Wariant uwierzytelnienia WS-Security. Domyślny = wzór ze specyfikacji SEAP (skrót hasła).
+#   haslo:     "skrot"    – digest liczony z Base64(SHA-1(hasło))  (specyfikacja PUESC)
+#              "standard" – digest liczony z samego hasła          (standard OASIS)
+#              "tekst"    – PasswordText (hasło jawnie, w HTTPS)
+#   timestamp: dodaj wsu:Timestamp (Created/Expires) w nagłówku Security
+#   nonce:     "bin" – do skrótu idą bajty nonce (standard), "b64" – tekst Base64 nonce
+#   ms:        wsu:Created z milisekundami
+DOMYSLNY_TRYB = {"haslo": "skrot", "timestamp": False, "nonce": "bin", "ms": False}
+
+WARIANTY_DIAGNOSTYKI = [
+    {"haslo": "skrot", "timestamp": False, "nonce": "bin", "ms": False},
+    {"haslo": "skrot", "timestamp": True, "nonce": "bin", "ms": False},
+    {"haslo": "skrot", "timestamp": False, "nonce": "bin", "ms": True},
+    {"haslo": "standard", "timestamp": False, "nonce": "bin", "ms": False},
+    {"haslo": "standard", "timestamp": True, "nonce": "bin", "ms": False},
+    {"haslo": "skrot", "timestamp": False, "nonce": "b64", "ms": False},
+    {"haslo": "tekst", "timestamp": False, "nonce": "bin", "ms": False},
+    {"haslo": "tekst", "timestamp": True, "nonce": "bin", "ms": False},
+]
+
+
+def opis_trybu(t: dict) -> str:
+    h = {"skrot": "digest ze skrótu hasła (PUESC)", "standard": "digest z hasła (standard)",
+         "tekst": "hasło jawne (PasswordText)"}[t.get("haslo", "skrot")]
+    return h + (" + Timestamp" if t.get("timestamp") else "") + \
+        (" + nonce jako tekst" if t.get("nonce") == "b64" else "") + (" + ms w Created" if t.get("ms") else "")
 
 
 # ---------------------------------------------------------------- konfiguracja
@@ -206,12 +238,20 @@ def parsuj_dokument(el) -> dict:
 
 class Klient:
     def __init__(self, konf: dict, login: str, skrot: str, log_dir: Path | None = None,
-                 sesja: requests.Session | None = None, timeout: int = 90):
-        if not login or not skrot:
+                 sesja: requests.Session | None = None, timeout: int = 90,
+                 tryb: dict | None = None, haslo: str = "", przesuniecie: float = 0.0):
+        self.tryb = {**DOMYSLNY_TRYB, **(tryb or {})}
+        if not login or not (skrot or haslo):
             raise BladSeap("Brak loginu lub hasła PUESC – uzupełnij je w Ustawieniach.")
-        self.konf, self.login, self.skrot = konf, login, skrot
+        if self.tryb["haslo"] != "skrot" and not haslo:
+            raise BladSeap("Wybrany wariant logowania wymaga zapisanego hasła – wpisz je ponownie w Ustawieniach.")
+        self.konf, self.login = konf, login.strip()
+        self.skrot = skrot or skrot_hasla(haslo)
+        self.haslo = haslo
+        self.przesuniecie = przesuniecie  # sekundy: czas serwera − czas komputera (korekta zegara)
         self.log_dir, self.timeout = log_dir, timeout
         self.sesja = sesja or requests.Session()
+        self.czas_serwera: datetime | None = None
 
     # -- koperta
     def koperta(self, op: str, pola: list[tuple[str, object]] | None = None,
@@ -225,12 +265,25 @@ class Klient:
         sec.set(f"{{{NS_SOAP}}}mustUnderstand", "1")
         tok = etree.SubElement(sec, f"{{{NS_WSSE}}}UsernameToken")
         tok.set(f"{{{NS_WSU}}}Id", f"UsernameToken-{uuid.uuid4().hex}")
-        nonce, created = os.urandom(16), teraz_utc()
+        t = self.tryb
+        nonce, created = os.urandom(16), teraz_utc(self.przesuniecie, t["ms"])
+        nonce_b64 = base64.b64encode(nonce).decode("ascii")
+        if t["timestamp"]:
+            ts = etree.Element(f"{{{NS_WSU}}}Timestamp")
+            ts.set(f"{{{NS_WSU}}}Id", f"TS-{uuid.uuid4().hex}")
+            etree.SubElement(ts, f"{{{NS_WSU}}}Created").text = created
+            etree.SubElement(ts, f"{{{NS_WSU}}}Expires").text = teraz_utc(self.przesuniecie + 300, t["ms"])
+            sec.insert(0, ts)
         etree.SubElement(tok, f"{{{NS_WSSE}}}Username").text = self.login
-        pw = etree.SubElement(tok, f"{{{NS_WSSE}}}Password", Type=PASSWORD_DIGEST)
-        pw.text = password_digest(nonce, created, self.skrot)
+        if t["haslo"] == "tekst":
+            etree.SubElement(tok, f"{{{NS_WSSE}}}Password", Type=PASSWORD_TEXT).text = self.haslo
+        else:
+            sekret = self.skrot if t["haslo"] == "skrot" else self.haslo
+            n_do_skrotu = nonce_b64.encode("ascii") if t["nonce"] == "b64" else nonce
+            pw = etree.SubElement(tok, f"{{{NS_WSSE}}}Password", Type=PASSWORD_DIGEST)
+            pw.text = password_digest(n_do_skrotu, created, sekret)
         n = etree.SubElement(tok, f"{{{NS_WSSE}}}Nonce", EncodingType=BASE64_BINARY)
-        n.text = base64.b64encode(nonce).decode("ascii")
+        n.text = nonce_b64
         etree.SubElement(tok, f"{{{NS_WSU}}}Created").text = created
 
         etree.SubElement(head, f"{{{NS_WSA}}}Action").text = o["akcja"]
@@ -282,6 +335,10 @@ class Klient:
             raise BladSeap(f"Brak połączenia z PUESC: {e}") from e
         self._loguj(op, koperta, r.content, r.status_code)
         try:
+            self.czas_serwera = parsedate_to_datetime(r.headers.get("Date", "")) if getattr(r, "headers", None) else None
+        except (TypeError, ValueError):
+            self.czas_serwera = None
+        try:
             root = etree.fromstring(r.content)
         except etree.XMLSyntaxError:
             raise BladSeap(f"PUESC zwrócił HTTP {r.status_code} bez poprawnego XML.", r.text[:2000])
@@ -325,3 +382,41 @@ class Klient:
         dok = next((el for el in wynik.iter() if _lokalna(el) == "document"), None)
         has_next = next((el.text for el in wynik.iter() if _lokalna(el) == "hasNext"), "false")
         return (parsuj_dokument(dok) if dok is not None else None), (has_next or "").strip() == "true"
+
+
+def jest_bledem_logowania(e: Exception) -> bool:
+    return bool(re.search(r"security|WSSecurity|authenticat|unauthori|HTTP 401|HTTP 403", str(e), re.I))
+
+
+def diagnozuj(konf: dict, login: str, haslo: str, log_dir: Path | None = None,
+              sesja: requests.Session | None = None) -> dict:
+    """Sprawdza warianty logowania jedną, niczego nie zmieniającą operacją (GetDocuments za dziś).
+
+    Zwraca {'proby': [(tryb, ok, komunikat)], 'dzialajacy': tryb|None, 'przesuniecie': s, 'czas_serwera': str}.
+    """
+    from datetime import date
+    s = sesja or requests.Session()
+    dzis = date.today().isoformat()
+    wynik = {"proby": [], "dzialajacy": None, "przesuniecie": 0.0, "czas_serwera": ""}
+    przes = 0.0
+    for i, tryb in enumerate(WARIANTY_DIAGNOSTYKI):
+        k = Klient(konf, login, "", log_dir=log_dir, sesja=s, timeout=60, tryb=tryb, haslo=haslo,
+                   przesuniecie=przes)
+        try:
+            n = len(k.get_documents(dataOd=dzis, dataDo=dzis, pobrany=0))
+            wynik["proby"].append((tryb, True, f"OK – dokumentów z dziś: {n}"))
+            wynik["dzialajacy"] = tryb
+        except BladSeap as e:
+            wynik["proby"].append((tryb, False, str(e)))
+            if not jest_bledem_logowania(e) and "Brak połączenia" in str(e):
+                break  # brak sieci – dalsze próby nic nie dadzą
+        if i == 0 and k.czas_serwera:
+            przes = (k.czas_serwera - datetime.now(timezone.utc)).total_seconds()
+            wynik["przesuniecie"] = przes
+            wynik["czas_serwera"] = k.czas_serwera.isoformat()
+            if abs(przes) < 60:
+                przes = 0.0  # zegar w porządku – nie korygujemy
+        if wynik["dzialajacy"]:
+            break
+    wynik["przesuniecie_uzyte"] = przes
+    return wynik

@@ -35,6 +35,17 @@ Testy: `python -m unittest discover -s tests -v` (bez połączenia z PUESC – u
    w Ustawieniach – login, hasło i konfiguracja są pamiętane osobno dla każdego środowiska.
    W nagłówku zawsze widać, które środowisko jest aktywne.
 
+## Błąd „A security error was encountered when verifying the message”
+PUESC odrzucił nagłówek logowania WS-Security. **Ustawienia → Diagnostyka logowania**: po wpisaniu
+hasła aplikacja sprawdza (operacją GetDocuments za dziś, bez wysyłania czegokolwiek):
+- różnicę zegara komputera i serwera PUESC (dopuszczalne ±5 minut) – przy dużej różnicy stosuje korektę,
+- warianty podpisu: digest ze skrótu hasła (wzór z specyfikacji PUESC), digest z samego hasła (standard OASIS),
+  z `wsu:Timestamp` i bez, hasło jawne `PasswordText` (w HTTPS).
+
+Pierwszy działający wariant zostaje zapisany. Jeśli żaden nie działa – problem leży po stronie konta:
+login musi być e-mailem konta na właściwym środowisku, a konto musi mieć własne hasło PUESC
+(samo logowanie przez login.gov.pl nie wystarcza do WebService).
+
 ## Praca
 1. **Nowe zapytanie** – wklej VIN-y (po jednym w wierszu) albo podaj numer UPO deklaracji
    (opcjonalnie potwierdzenie zbiorcze + kwota dokumentu). Każde zapytanie jest walidowane z XSD przed wysłaniem.

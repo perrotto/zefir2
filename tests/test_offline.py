@@ -32,10 +32,16 @@ def odpowiedz_soap(cialo: str) -> bytes:
             f'</soap:Body></soap:Envelope>').encode()
 
 
+BLAD_WSS = odpowiedz_soap('<soap:Fault><faultcode xmlns:ns1="http://ws.apache.org/wss4j">ns1:SecurityError'
+                          '</faultcode><faultstring>A security error was encountered when verifying the message'
+                          '</faultstring></soap:Fault>')
+
+
 class UdawanyPuesc:
     """Zachowuje się jak requests.Session dla DocumentHandlingPort."""
     wyslane: list = []
     dokumenty: list = []
+    wymagany_digest = None  # None = przyjmij każde logowanie; "standard" = tylko digest z samego hasła "tajne"
 
     def __init__(self):
         pass
@@ -43,6 +49,13 @@ class UdawanyPuesc:
     def post(self, url, data, timeout, headers):
         UdawanyPuesc.wyslane.append(data)
         root = etree.fromstring(data)
+        if UdawanyPuesc.wymagany_digest == "standard":
+            nonce = base64.b64decode(root.findtext(".//{%s}Nonce" % seap.NS_WSSE))
+            created = root.findtext(".//{%s}UsernameToken/{%s}Created" % (seap.NS_WSSE, seap.NS_WSU))
+            haslo = root.find(".//{%s}Password" % seap.NS_WSSE)
+            if not haslo.get("Type", "").endswith("#PasswordDigest") or \
+                    haslo.text != seap.password_digest(nonce, created, "tajne"):
+                return Odp(500, BLAD_WSS)
         op = etree.QName(root.find(".//{%s}Body" % seap.NS_SOAP)[0]).localname
         if op == "AcceptDocumentRequest":
             tekst = (b'<ns2:AcceptDocumentResponse xmlns:ns2="urn:x" xmlns="urn:t"><result>'
@@ -62,6 +75,8 @@ class UdawanyPuesc:
 class Odp:
     def __init__(self, status, content):
         self.status_code, self.content = status, content
+        from email.utils import formatdate
+        self.headers = {"Date": formatdate(usegmt=True)}
         self.text = content.decode("utf-8", "replace")
 
     def raise_for_status(self):
@@ -180,6 +195,28 @@ class TestAplikacja(unittest.TestCase):
                                          "ws_json": __import__("json").dumps(konf)})
         with self.app.app.app_context():
             self.assertEqual(self.app.konfiguracja_ws()["zrodlo"], "WSDL")
+
+    def test_diagnostyka_znajduje_wariant(self):
+        self.c.post("/ustawienia", data={"srodowisko": "produkcja", "akcja": "zapisz", "login": "a@firma.pl",
+                                         "haslo": "tajne", "endpoint": "", "target_systems": "", "ws_json": ""})
+        UdawanyPuesc.wymagany_digest = "standard"
+        try:
+            r = self.c.post("/nowe", data={"tryb": "vin", "viny": "DIAG0000000000001", "akcja": "wyslij"},
+                            follow_redirects=True)
+            self.assertIn("Diagnostyk", r.get_data(as_text=True))
+            r = self.c.post("/diagnostyka", data={"login": "a@firma.pl", "haslo": "tajne"}, follow_redirects=True)
+            html = r.get_data(as_text=True)
+            self.assertIn("Logowanie działa (digest z hasła (standard))", html)
+            ok, msg = None, None
+            with self.app.app.app_context():
+                self.assertEqual(self.app.tryb_logowania()["haslo"], "standard")
+                ok, msg = self.app.test_polaczenia()
+            self.assertTrue(ok, msg)
+        finally:
+            UdawanyPuesc.wymagany_digest = None
+            with self.app.app.app_context():
+                self.app.db().execute("DELETE FROM ustawienia WHERE klucz LIKE 'tryb_%' OR klucz LIKE 'haslo_%'")
+                self.app.db().commit()
 
     def test_npp_odrzuca(self):
         UdawanyPuesc.dokumenty = []

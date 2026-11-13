@@ -11,7 +11,7 @@ import json
 import os
 import re
 import sqlite3
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import (Flask, Response, abort, flash, g, redirect, render_template, request,
@@ -127,10 +127,17 @@ def konfiguracja_ws(auto_wsdl: bool = False) -> dict:
     return konf
 
 
+def tryb_logowania(sr: str | None = None) -> dict:
+    zapis = ustawienie(f"tryb_{sr or srodowisko()}")
+    return {**seap.DOMYSLNY_TRYB, **(json.loads(zapis) if zapis else {})}
+
+
 def klient() -> seap.Klient:
     sr = srodowisko()
     return seap.Klient(konfiguracja_ws(auto_wsdl=True), ustawienie(f"login_{sr}"),
-                       ustawienie(f"skrot_{sr}"), log_dir=LOG_DIR)
+                       ustawienie(f"skrot_{sr}"), log_dir=LOG_DIR, tryb=tryb_logowania(sr),
+                       haslo=ustawienie(f"haslo_{sr}"),
+                       przesuniecie=float(ustawienie(f"korekta_{sr}", "0") or 0))
 
 
 def test_polaczenia() -> tuple[bool, str]:
@@ -140,7 +147,9 @@ def test_polaczenia() -> tuple[bool, str]:
         n = len(klient().get_documents(dataOd=dzis, dataDo=dzis, pobrany=0))
         return True, f"Połączenie z PUESC ({srodowisko()}) działa – dzisiejszych dokumentów na koncie: {n}."
     except seap.BladSeap as e:
-        return False, f"Test połączenia z PUESC ({srodowisko()}) nieudany: {e}"
+        rada = (" Uruchom „Diagnostykę logowania” w Ustawieniach – sprawdzi hasło, zegar i warianty podpisu."
+                if seap.jest_bledem_logowania(e) else "")
+        return False, f"Test połączenia z PUESC ({srodowisko()}) nieudany: {e}.{rada}"
 
 
 def systemy_docelowe() -> list[str]:
@@ -153,7 +162,11 @@ def systemy_docelowe() -> list[str]:
 def _dt(s):
     if not s:
         return "—"
-    s = str(s).replace("T", " ")
+    s = str(s)
+    if re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d", s):  # CURRENT_TIMESTAMP z SQLite = UTC
+        s = datetime.strptime(s, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).astimezone() \
+            .strftime("%Y-%m-%d %H:%M:%S")
+    s = s.replace("T", " ")
     try:
         y, m, d = s[:10].split("-")
     except ValueError:
@@ -199,7 +212,9 @@ def wyslij_zapytanie(zid: int) -> bool:
     try:
         wynik = klient().accept_document(xml, z["plik"], systemy_docelowe())
     except seap.BladSeap as e:
-        db().execute("UPDATE zapytania SET status='blad', opis=? WHERE id=?", (str(e), zid))
+        opis = str(e) + (" – PUESC nie przyjął logowania; uruchom Diagnostykę logowania w Ustawieniach."
+                         if seap.jest_bledem_logowania(e) else "")
+        db().execute("UPDATE zapytania SET status='blad', opis=? WHERE id=?", (opis, zid))
         db().commit()
         return False
     db().execute("UPDATE zapytania SET status='wyslane', sys_ref=?, opis=?, srodowisko=? WHERE id=?",
@@ -474,6 +489,8 @@ def ustawienia():
             zapisz_ustawienie(f"login_{sr}", request.form.get("login", "").strip())
             if request.form.get("haslo"):
                 zapisz_ustawienie(f"skrot_{sr}", seap.skrot_hasla(request.form["haslo"]))
+                if tryb_logowania(sr)["haslo"] != "skrot":
+                    zapisz_ustawienie(f"haslo_{sr}", request.form["haslo"])
             zapisz_ustawienie(f"endpoint_{sr}", request.form.get("endpoint", "").strip())
             zapisz_ustawienie("target_systems", request.form.get("target_systems", "").strip())
             if request.form.get("ws_json", "").strip():
@@ -523,6 +540,33 @@ def ustawienia():
                            endpoint=ustawienie(f"endpoint_{sr}"), domyslny_endpoint=seap.ENDPOINTY[sr],
                            target_systems=ustawienie("target_systems"),
                            ws_json=json.dumps(konf, ensure_ascii=False, indent=2))
+
+
+@app.route("/diagnostyka", methods=["GET", "POST"])
+def diagnostyka():
+    sr = srodowisko()
+    wynik, login = None, ustawienie(f"login_{sr}")
+    if request.method == "POST":
+        login = request.form.get("login", "").strip() or login
+        haslo = request.form.get("haslo", "")
+        if not login or not haslo:
+            flash("Wpisz login i hasło PUESC – diagnostyka potrzebuje hasła, by sprawdzić warianty podpisu.", "err")
+            return redirect(url_for("diagnostyka"))
+        if haslo and seap.skrot_hasla(haslo) != ustawienie(f"skrot_{sr}") and ustawienie(f"skrot_{sr}"):
+            flash("Uwaga: wpisane hasło różni się od zapisanego w Ustawieniach.", "warn")
+        wynik = seap.diagnozuj(konfiguracja_ws(auto_wsdl=True), login, haslo, log_dir=LOG_DIR)
+        if wynik["dzialajacy"]:
+            t = wynik["dzialajacy"]
+            zapisz_ustawienie(f"login_{sr}", login)
+            zapisz_ustawienie(f"skrot_{sr}", seap.skrot_hasla(haslo))
+            zapisz_ustawienie(f"tryb_{sr}", json.dumps(t))
+            # hasło zapisujemy tylko, gdy wariant go wymaga (inaczej wystarczy skrót)
+            zapisz_ustawienie(f"haslo_{sr}", haslo if t["haslo"] != "skrot" else "")
+            zapisz_ustawienie(f"korekta_{sr}", str(wynik["przesuniecie_uzyte"]))
+            db().commit()
+            flash(f"Logowanie działa ({seap.opis_trybu(t)}) – zapisano ten wariant.", "ok")
+    return render_template("diagnostyka.html", wynik=wynik, login=login, opis_trybu=seap.opis_trybu,
+                           tryb=tryb_logowania(sr), teraz_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"))
 
 
 @app.route("/log")

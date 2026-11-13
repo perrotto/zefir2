@@ -77,7 +77,7 @@ jobs:
           foreach ($i in 1..30) {
             Start-Sleep -Seconds 1
             try {
-              foreach ($u in "/", "/nowe", "/ustawienia", "/dokumenty", "/log") {
+              foreach ($u in "/", "/nowe", "/ustawienia", "/diagnostyka", "/dokumenty", "/log") {
                 $r = Invoke-WebRequest "http://127.0.0.1:5099$u" -UseBasicParsing
                 if ($r.StatusCode -ne 200) { throw "HTTP $($r.StatusCode) dla $u" }
               }

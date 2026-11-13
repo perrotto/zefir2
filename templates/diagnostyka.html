@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Diagnostyka logowania{% endblock %}
+{% block body %}
+<a class="back" href="{{ url_for('ustawienia') }}">← Ustawienia</a>
+<h1>Diagnostyka logowania do PUESC ({{ srodowisko }})</h1>
+<p class="lead">Błąd „A security error was encountered when verifying the message” oznacza, że PUESC nie przyjął
+nagłówka logowania (WS-Security). Diagnostyka sprawdza kolejne warianty podpisu jedną bezpieczną operacją –
+listą dzisiejszych dokumentów. Niczego nie wysyła do ZEFIR2 i nie oznacza dokumentów jako pobranych.
+Pierwszy działający wariant zostanie zapisany.</p>
+
+<form method="post" class="card stack">
+  <div class="row">
+    <label class="grow">Login PUESC (e-mail konta)<input name="login" value="{{ login }}" autocomplete="username"></label>
+    <label class="grow">Hasło PUESC<input name="haslo" type="password" autocomplete="current-password" required></label>
+  </div>
+  <p class="hint">Obecny wariant: {{ opis_trybu(tryb) }}. Czas UTC tego komputera: {{ teraz_utc }}.</p>
+  <button class="btn primary">Uruchom diagnostykę</button>
+</form>
+
+{% if wynik %}
+<div class="card">
+  <h2>Wynik</h2>
+  {% if wynik.czas_serwera %}
+    <p>Czas serwera PUESC: <span class="mono">{{ wynik.czas_serwera }}</span> – różnica z tym komputerem:
+      <b class="{{ 'danger' if wynik.przesuniecie|abs >= 60 }}">{{ '%+.0f'|format(wynik.przesuniecie) }} s</b>.
+      {% if wynik.przesuniecie|abs >= 60 %}<br><span class="danger">Zegar komputera jest przestawiony – PUESC odrzuca logowanie,
+        gdy różnica przekracza 5 minut. Ustaw automatyczną synchronizację czasu w Windows (Ustawienia → Czas i język).
+        Kolejne próby były wysyłane z korektą czasu.</span>{% endif %}</p>
+  {% endif %}
+  <table class="grid"><thead><tr><th>Wariant</th><th>Wynik</th></tr></thead><tbody>
+  {% for t, ok, msg in wynik.proby %}
+    <tr><td>{{ opis_trybu(t) }}</td><td><span class="pill {{ 'ok' if ok else 'late' }}">{{ 'działa' if ok else 'błąd' }}</span>
+      <span class="sub">{{ msg }}</span></td></tr>
+  {% endfor %}
+  </tbody></table>
+  {% if not wynik.dzialajacy %}
+  <div class="warnbox" style="margin-top:1rem">
+    <b>Żaden wariant nie zadziałał.</b> To najpewniej problem z kontem, a nie z podpisem:
+    <ul>
+      <li>czy login to dokładnie e-mail konta na <b>{{ 'puesc.gov.pl' if srodowisko=='produkcja' else 'test.puesc.gov.pl' }}</b>
+        (konta testowe i produkcyjne są osobne),</li>
+      <li>czy to konto ma <b>własne hasło PUESC</b> – jeśli logujesz się tylko przez login.gov.pl (profil zaufany, e-dowód, bank),
+        ustaw hasło na PUESC („Nie pamiętasz hasła?”), bo WebService go wymaga,</li>
+      <li>czy konto jest aktywne i niezablokowane (zaloguj się nim na stronie PUESC),</li>
+      <li>jeśli wszystko się zgadza – wyślij helpdeskowi PUESC wpis z zakładki Log.</li>
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
