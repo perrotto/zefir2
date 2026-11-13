@@ -252,6 +252,7 @@ class Klient:
         self.log_dir, self.timeout = log_dir, timeout
         self.sesja = sesja or requests.Session()
         self.czas_serwera: datetime | None = None
+        self.poprawiono_konf = False  # True, gdy konfiguracja została poprawiona na podstawie błędu serwera
 
     # -- koperta
     def koperta(self, op: str, pola: list[tuple[str, object]] | None = None,
@@ -292,7 +293,7 @@ class Klient:
 
         body = etree.SubElement(env, f"{{{NS_SOAP}}}Body")
         wrap = etree.SubElement(body, o["element"])
-        ns = self.konf.get("ns_typy", "")
+        ns = self.ns_pol(op)
         for nazwa, wartosc in pola or []:
             if wartosc in (None, ""):
                 continue
@@ -302,12 +303,20 @@ class Klient:
             wrap.append(cialo)
         return etree.tostring(env, xml_declaration=True, encoding="UTF-8")
 
-    def _el(self, nazwa: str, **attr) -> etree._Element:
-        ns = self.konf.get("ns_typy", "")
-        return etree.Element(f"{{{ns}}}{nazwa}" if ns else nazwa, **attr)
+    def ns_pol(self, op: str) -> str:
+        """Przestrzeń nazw pól żądania (dzieci elementu *Request) – ta sama co element żądania.
 
-    def _sub(self, rodzic, nazwa: str, **attr) -> etree._Element:
-        ns = self.konf.get("ns_typy", "")
+        PUESC: pola GetDocuments (dataOd, pobrany, …) i element document są w przestrzeni usługi
+        …/uslugiBiznesowe/WsPull/Usluga/2014/01_v2_0, a zawartość dokumentu (content, targetSystems)
+        – w przestrzeni typów …/schematy/SISC/WsChannel/2014/01_v2_0 (ns_typy).
+        """
+        o = self.konf["operacje"][op]
+        if "ns_pola" in o:
+            return o["ns_pola"]
+        return etree.QName(o["element"]).namespace or ""
+
+    @staticmethod
+    def _sub(rodzic, ns: str, nazwa: str, **attr) -> etree._Element:
         return etree.SubElement(rodzic, f"{{{ns}}}{nazwa}" if ns else nazwa, **attr)
 
     # -- transport
@@ -354,15 +363,52 @@ class Klient:
             raise BladSeap(f"PUESC zwrócił HTTP {r.status_code}.", r.text[:2000])
         return wynik
 
+    # -- samonaprawa przestrzeni nazw
+    POLA_DOKUMENTU = {"content", "attachments", "targetSystems", "system", "value"}
+
+    def popraw_z_bledu(self, op: str, e: BladSeap) -> bool:
+        """'Unmarshalling Error: unexpected element (uri:"A", local:"x"). Expected elements are <{B}y>…'
+        → przenieś element x do przestrzeni B. Zwraca True, jeśli coś poprawiono."""
+        m = re.search(r'unexpected element \(uri:"([^"]*)", local:"([^"]+)"\)', str(e))
+        oczek = re.findall(r"<\{([^}]*)\}(\w+)>", str(e))
+        if not m or not oczek:
+            return False
+        lokalna = m.group(2)
+        ns = next((n for n, nazwa in oczek if nazwa == lokalna), oczek[0][0])
+        if ns == m.group(1):
+            return False
+        if lokalna in self.POLA_DOKUMENTU:
+            if self.konf.get("ns_typy") == ns:
+                return False
+            self.konf["ns_typy"] = ns
+        else:
+            if self.ns_pol(op) == ns:
+                return False
+            self.konf["operacje"][op]["ns_pola"] = ns
+        self.poprawiono_konf = True
+        return True
+
+    def _z_poprawka(self, op: str, wywolanie):
+        for proba in range(3):  # najwyżej dwie poprawki (pola żądania + zawartość dokumentu)
+            try:
+                return wywolanie()
+            except BladSeap as e:
+                if proba == 2 or not self.popraw_z_bledu(op, e):
+                    raise
+
     # -- operacje
     def accept_document(self, xml: bytes, filename: str, target_systems: list[str] | None = None) -> dict:
-        doc = self._el("document")
-        c = self._sub(doc, "content", filename=filename[:128], mime="application/xml")
+        return self._z_poprawka("AcceptDocument", lambda: self._accept_document(xml, filename, target_systems))
+
+    def _accept_document(self, xml: bytes, filename: str, target_systems: list[str] | None = None) -> dict:
+        ns_p, ns_t = self.ns_pol("AcceptDocument"), self.konf.get("ns_typy", "")
+        doc = etree.Element(f"{{{ns_p}}}document" if ns_p else "document")
+        c = self._sub(doc, ns_t, "content", filename=filename[:128], mime="application/xml")
         c.text = base64.b64encode(xml).decode("ascii")
         if target_systems:
-            ts = self._sub(doc, "targetSystems")
+            ts = self._sub(doc, ns_t, "targetSystems")
             for s in target_systems:
-                self._sub(ts, "system").text = s
+                self._sub(ts, ns_t, "system").text = s
         wynik = self.wyslij("AcceptDocument", self.koperta("AcceptDocument", cialo=doc))
         result = next((el for el in wynik.iter() if _lokalna(el) == "result"), wynik)
         pola = {_lokalna(x): (x.text or "").strip() for x in result.iter() if len(x) == 0 and x is not result}
@@ -372,13 +418,14 @@ class Klient:
 
     def get_documents(self, **filtry) -> list[dict]:
         pola = [(k, filtry.get(k)) for k in POLA_GET_DOCUMENTS]
-        wynik = self.wyslij("GetDocuments", self.koperta("GetDocuments", pola))
+        wynik = self._z_poprawka("GetDocuments",
+                                 lambda: self.wyslij("GetDocuments", self.koperta("GetDocuments", pola)))
         return [parsuj_dokument(el) for el in wynik.iter() if _lokalna(el) == "document"]
 
     def get_next_document(self, sisc: bool = False, **filtry) -> tuple[dict | None, bool]:
         op = "GetNextDocumentSisc" if sisc else "GetNextDocument"
         pola = [(k, filtry.get(k)) for k in (POLA_GET_NEXT_SISC if sisc else ["targetSystem"])]
-        wynik = self.wyslij(op, self.koperta(op, pola))
+        wynik = self._z_poprawka(op, lambda: self.wyslij(op, self.koperta(op, pola)))
         dok = next((el for el in wynik.iter() if _lokalna(el) == "document"), None)
         has_next = next((el.text for el in wynik.iter() if _lokalna(el) == "hasNext"), "false")
         return (parsuj_dokument(dok) if dok is not None else None), (has_next or "").strip() == "true"

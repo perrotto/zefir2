@@ -42,6 +42,7 @@ class UdawanyPuesc:
     wyslane: list = []
     dokumenty: list = []
     wymagany_digest = None  # None = przyjmij każde logowanie; "standard" = tylko digest z samego hasła "tajne"
+    wymagane_ns_pol = None  # jak PUESC: pola żądania muszą być w tej przestrzeni nazw (None = ns elementu żądania)
 
     def __init__(self):
         pass
@@ -56,7 +57,16 @@ class UdawanyPuesc:
             if not haslo.get("Type", "").endswith("#PasswordDigest") or \
                     haslo.text != seap.password_digest(nonce, created, "tajne"):
                 return Odp(500, BLAD_WSS)
-        op = etree.QName(root.find(".//{%s}Body" % seap.NS_SOAP)[0]).localname
+        wrap = root.find(".//{%s}Body" % seap.NS_SOAP)[0]
+        op = etree.QName(wrap).localname
+        ns_pol = UdawanyPuesc.wymagane_ns_pol or etree.QName(wrap).namespace
+        for pole in wrap:
+            if etree.QName(pole).namespace != ns_pol:  # komunikat w formacie JAXB/CXF z PUESC
+                return Odp(500, odpowiedz_soap(
+                    f'<soap:Fault><faultcode>soap:Client</faultcode><faultstring>Unmarshalling Error: unexpected '
+                    f'element (uri:"{etree.QName(pole).namespace}", local:"{etree.QName(pole).localname}"). '
+                    f'Expected elements are &lt;{{{ns_pol}}}sysRef&gt;,&lt;{{{ns_pol}}}dataOd&gt;,'
+                    f'&lt;{{{ns_pol}}}document&gt; </faultstring></soap:Fault>'))
         if op == "AcceptDocumentRequest":
             tekst = (b'<ns2:AcceptDocumentResponse xmlns:ns2="urn:x" xmlns="urn:t"><result>'
                      b'<sysRef>SYS-123</sysRef></result></ns2:AcceptDocumentResponse>')
@@ -117,9 +127,19 @@ class TestSeap(unittest.TestCase):
         wrap = env.find(".//{%s}Body" % seap.NS_SOAP)[0]
         self.assertEqual(wrap.tag, f"{{{seap.NS_USLUGA}}}GetDocumentsRequest")
         self.assertEqual([etree.QName(e).localname for e in wrap], ["korelacjaSysref", "dataDo", "pobrany"])
+        # jak w odpowiedzi PUESC: pola GetDocuments w przestrzeni usługi, nie typów WsChannel
+        self.assertEqual({etree.QName(e).namespace for e in wrap}, {seap.NS_USLUGA})
         self.assertEqual(env.findtext(".//{%s}Username" % seap.NS_WSSE), "a@b.pl")
         self.assertRegex(env.findtext(".//{%s}Created" % seap.NS_WSU), r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
         self.assertTrue(env.findtext(".//{%s}MessageID" % seap.NS_WSA).startswith("urn:uuid:"))
+
+    def test_koperta_accept_document(self):
+        k = seap.Klient(seap.domyslna_konfiguracja("produkcja"), "a@b.pl", "x")
+        k.wyslij = lambda op, koperta: setattr(self, "koperta", koperta) or etree.fromstring(
+            "<r><result><sysRef>1</sysRef></result></r>")
+        k.accept_document(b"<a/>", "a.xml")
+        env = etree.fromstring(self.koperta)
+        self.assertIsNotNone(env.find(".//{%s}document/{%s}content" % (seap.NS_USLUGA, seap.NS_TYPY)))
 
     def test_wykrywanie_z_wsdl(self):
         konf = seap.wykryj_z_wsdl("https://x/DocumentHandlingPort", sesja=UdawanyPuesc())
@@ -216,6 +236,28 @@ class TestAplikacja(unittest.TestCase):
             UdawanyPuesc.wymagany_digest = None
             with self.app.app.app_context():
                 self.app.db().execute("DELETE FROM ustawienia WHERE klucz LIKE 'tryb_%' OR klucz LIKE 'haslo_%'")
+                self.app.db().commit()
+
+    def test_samonaprawa_przestrzeni_nazw(self):
+        self.c.post("/ustawienia", data={"srodowisko": "produkcja", "akcja": "zapisz", "login": "a@firma.pl",
+                                         "haslo": "tajne", "endpoint": "", "target_systems": "", "ws_json": ""})
+        UdawanyPuesc.wymagane_ns_pol = "urn:pola-puesc"
+        try:
+            with self.app.app.app_context():
+                ok, msg = self.app.test_polaczenia()
+                self.assertTrue(ok, msg)
+                self.app._zapisz_poprawki_ws(None)
+                konf = self.app.konfiguracja_ws()
+            self.assertEqual(konf["operacje"]["GetDocuments"]["ns_pola"], "urn:pola-puesc")
+            self.assertIn("poprawki", konf["zrodlo"])
+            with self.app.app.app_context():  # zapisana poprawka działa od razu, bez ponownego błędu
+                przed = len(UdawanyPuesc.wyslane)
+                self.assertTrue(self.app.test_polaczenia()[0])
+                self.assertEqual(len(UdawanyPuesc.wyslane) - przed, 1)
+        finally:
+            UdawanyPuesc.wymagane_ns_pol = None
+            with self.app.app.app_context():
+                self.app.db().execute("DELETE FROM ustawienia WHERE klucz LIKE 'ws_%'")
                 self.app.db().commit()
 
     def test_npp_odrzuca(self):

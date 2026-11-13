@@ -134,10 +134,23 @@ def tryb_logowania(sr: str | None = None) -> dict:
 
 def klient() -> seap.Klient:
     sr = srodowisko()
-    return seap.Klient(konfiguracja_ws(auto_wsdl=True), ustawienie(f"login_{sr}"),
-                       ustawienie(f"skrot_{sr}"), log_dir=LOG_DIR, tryb=tryb_logowania(sr),
-                       haslo=ustawienie(f"haslo_{sr}"),
-                       przesuniecie=float(ustawienie(f"korekta_{sr}", "0") or 0))
+    k = seap.Klient(konfiguracja_ws(auto_wsdl=True), ustawienie(f"login_{sr}"),
+                    ustawienie(f"skrot_{sr}"), log_dir=LOG_DIR, tryb=tryb_logowania(sr),
+                    haslo=ustawienie(f"haslo_{sr}"),
+                    przesuniecie=float(ustawienie(f"korekta_{sr}", "0") or 0))
+    g.setdefault("klienci", []).append((sr, k))
+    return k
+
+
+@app.after_request
+def _zapisz_poprawki_ws(odp):
+    """Jeśli klient poprawił przestrzenie nazw na podstawie błędu PUESC – zapamiętaj to."""
+    for sr, k in g.pop("klienci", []):
+        if k.poprawiono_konf:
+            konf = {**k.konf, "zrodlo": "WSDL + poprawki z odpowiedzi PUESC"}
+            zapisz_ustawienie(f"ws_{sr}", json.dumps(konf, ensure_ascii=False))
+            db().commit()
+    return odp
 
 
 def test_polaczenia() -> tuple[bool, str]:
