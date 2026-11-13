@@ -4,10 +4,11 @@ Lokalna aplikacja do pobierania potwierdzeń zapłaty akcyzy za samochód z syst
 przez WebService PUESC: wysyła zapytania **PZAS** (po VIN albo po numerze UPO deklaracji),
 odbiera odpowiedzi i zapisuje PDF-y potwierdzeń.
 
-> **Szkic.** Struktura komunikatów PZAS pochodzi z oficjalnej specyfikacji ZEFIR2, a kanał
-> z „SEAP PLUS – Specyfikacja Techniczna Publiczna” v5.50. Ani jeden, ani drugi dokument nie
-> podaje przestrzeni nazw SOAP, wymagań co do podpisu PZASReq ani uprawnień do zapytań o cudze
-> VIN-y, więc **całość trzeba najpierw sprawdzić na środowisku testowym PUESC**.
+> Aplikacja łączy się domyślnie z **produkcyjnym** PUESC (`https://ws.puesc.gov.pl/seap_wsChannel/DocumentHandlingPort`).
+> Struktura komunikatów PZAS pochodzi z oficjalnej specyfikacji ZEFIR2, a kanał z „SEAP PLUS –
+> Specyfikacja Techniczna Publiczna” v5.50. Dokumentacja nie podaje przestrzeni nazw SOAP – aplikacja
+> odczytuje je z WSDL serwera przy pierwszym połączeniu. Wymagań co do podpisu PZASReq i uprawnień
+> do zapytań o cudze VIN-y dokumentacja też nie opisuje – patrz „Do sprawdzenia” na końcu.
 
 ## Uruchomienie – wersja przenośna dla Windows (bez instalacji)
 1. Pobierz `Zefir2Akcyza-windows.zip` z najnowszego wydania w zakładce **Releases**
@@ -24,12 +25,15 @@ Wymaga Pythona 3.10+: `uruchom.bat` (Windows) lub `./uruchom.sh` (Linux/macOS).
 Testy: `python -m unittest discover -s tests -v` (bez połączenia z PUESC – udawany serwer SOAP).
 
 ## Pierwsze uruchomienie
-1. **Ustawienia** → środowisko **Test** → login (e-mail konta PUESC) i hasło → *Zapisz*.
-   Konto na https://test.puesc.gov.pl zakłada się osobno od produkcyjnego.
-   Aplikacja nie przechowuje hasła, tylko `Base64(SHA-1(hasło))` potrzebne do WS-Security.
-2. *Odczytaj z WSDL* – pobiera z serwera właściwe przestrzenie nazw i akcje SOAP.
-3. *Test połączenia* – wywołuje `GetDocuments` za dzisiaj (nic nie wysyła).
-4. Gdy test przejdzie – przełącz na **Produkcja** i powtórz kroki 1–3.
+1. **Ustawienia** (domyślnie środowisko **Produkcja**) → login (e-mail konta PUESC) i hasło →
+   **Zapisz i sprawdź połączenie**. Aplikacja:
+   - zapisuje tylko `Base64(SHA-1(hasło))` potrzebne do WS-Security, nie samo hasło,
+   - odczytuje z WSDL serwera właściwe przestrzenie nazw i akcje SOAP,
+   - wywołuje `GetDocuments` za dzisiaj (nic nie wysyła, nie oznacza dokumentów jako pobranych).
+2. Gdy pojawi się „Połączenie z PUESC (produkcja) działa” – można wysyłać zapytania.
+3. Środowisko testowe (`te-ws.puesc.gov.pl`, osobne konto na test.puesc.gov.pl) można włączyć
+   w Ustawieniach – login, hasło i konfiguracja są pamiętane osobno dla każdego środowiska.
+   W nagłówku zawsze widać, które środowisko jest aktywne.
 
 ## Praca
 1. **Nowe zapytanie** – wklej VIN-y (po jednym w wierszu) albo podaj numer UPO deklaracji
@@ -58,8 +62,9 @@ Testy: `python -m unittest discover -s tests -v` (bez połączenia z PUESC – u
   (ze „Specyfikacja XML ZEFIR2 08.09.2026”).
 - `tests/` – testy offline z przykładową odpowiedzią PZASResp ze specyfikacji.
 
-## Do sprawdzenia na środowisku testowym
+## Do sprawdzenia przy pierwszym zapytaniu
 - czy SEAP przyjmuje niepodpisany PZASReq (jeśli przyjdzie NPP z informacją o podpisie – trzeba dodać podpis XAdES),
-- czy wartości z *Odczytaj z WSDL* działają (inaczej poprawić je ręcznie w Ustawienia → Zaawansowane),
 - czy odpowiedź PZASResp jest skorelowana z `sysRef` zapytania (jeśli nie – działa dopasowanie po VIN),
 - czy konto może pytać o VIN-y z deklaracji złożonych przez inne podmioty.
+
+Jeśli coś nie działa, szczegóły są w zakładce **Log** – zapis żądania i odpowiedzi SOAP bez hasła.

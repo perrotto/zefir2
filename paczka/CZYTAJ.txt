@@ -5,9 +5,10 @@ POTWIERDZENIA ZAPLATY AKCYZY ZEFIR2 - wersja przenosna dla Windows
    (adres http://127.0.0.1:5010).
 3. Nie zamykaj czarnego okna podczas pracy.
 
-PIERWSZE URUCHOMIENIE: wejdz w Ustawienia, wybierz srodowisko (zacznij od Test),
-wpisz login (e-mail) i haslo konta PUESC, kliknij "Odczytaj z WSDL",
-a potem "Test polaczenia".
+PIERWSZE URUCHOMIENIE: aplikacja laczy sie z PRODUKCYJNYM PUESC (ws.puesc.gov.pl).
+Wejdz w Ustawienia, wpisz login (e-mail) i haslo konta PUESC i kliknij
+"Zapisz i sprawdz polaczenie" - aplikacja sama odczyta konfiguracje z serwera
+i sprawdzi logowanie. Srodowisko testowe mozna wlaczyc w Ustawieniach.
 
 Twoje dane sa w folderze "dane" (baza, XML-e, PDF-y potwierdzen w dane\potwierdzenia).
 KOPIA ZAPASOWA = skopiuj folder "dane" w bezpieczne miejsce.

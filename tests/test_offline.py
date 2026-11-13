@@ -131,7 +131,8 @@ class TestAplikacja(unittest.TestCase):
                         follow_redirects=True)
         self.assertIn("Wysłano 1 z 1", r.get_data(as_text=True))
         wyslany = etree.fromstring(UdawanyPuesc.wyslane[-1])
-        tresc = base64.b64decode(wyslany.findtext(".//{%s}content" % seap.NS_TYPY))
+        content = next(e for e in wyslany.iter() if etree.QName(e).localname == "content")
+        tresc = base64.b64decode(content.text)
         self.assertEqual(pzas.waliduj(tresc), [])
         self.assertIn(VIN.encode(), tresc)
 
@@ -155,6 +156,30 @@ class TestAplikacja(unittest.TestCase):
         log = list((Path(os.environ["ZEFIR_DATA"]) / "log").glob("*.txt"))
         self.assertTrue(log)
         self.assertNotIn(b"tajne", b"".join(p.read_bytes() for p in log))
+
+    def test_domyslnie_produkcja_i_wsdl_po_zapisie(self):
+        with self.app.app.app_context():
+            self.app.db().execute("DELETE FROM ustawienia")
+            self.app.db().commit()
+        self.app._PROBY_WSDL.clear()
+        self.assertIn("PRODUKCJA", self.c.get("/").get_data(as_text=True))
+        r = self.c.post("/ustawienia", data={"srodowisko": "produkcja", "akcja": "zapisz", "login": "a@firma.pl",
+                                             "haslo": "tajne", "endpoint": "", "target_systems": "",
+                                             "ws_json": ""}, follow_redirects=True)
+        html = r.get_data(as_text=True)
+        self.assertIn("Odczytano konfigurację SOAP z WSDL", html)
+        self.assertIn("Połączenie z PUESC (produkcja) działa", html)
+        with self.app.app.app_context():
+            konf = self.app.konfiguracja_ws()
+        self.assertEqual(konf["zrodlo"], "WSDL")
+        self.assertEqual(konf["endpoint"], seap.ENDPOINTY["produkcja"])
+        self.assertEqual(konf["operacje"]["AcceptDocument"]["element"], "{urn:typy}AcceptDocumentRequest")
+        # ponowny zapis bez zmian w JSON nie nadpisuje konfiguracji jako „ręcznej”
+        self.c.post("/ustawienia", data={"srodowisko": "produkcja", "akcja": "zapisz", "login": "a@firma.pl",
+                                         "endpoint": "", "target_systems": "",
+                                         "ws_json": __import__("json").dumps(konf)})
+        with self.app.app.app_context():
+            self.assertEqual(self.app.konfiguracja_ws()["zrodlo"], "WSDL")
 
     def test_npp_odrzuca(self):
         UdawanyPuesc.dokumenty = []

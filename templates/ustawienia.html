@@ -2,15 +2,17 @@
 {% block title %}Ustawienia{% endblock %}
 {% block body %}
 <h1>Ustawienia połączenia z PUESC</h1>
-<p class="lead">Logowanie do WebService odbywa się kontem PUESC (login = adres e-mail konta). Aplikacja nie zapisuje hasła,
-tylko jego skrót SHA-1 potrzebny do podpisu WS-Security. Zacznij od środowiska testowego (te-ws.puesc.gov.pl) –
-konto na test.puesc.gov.pl zakłada się osobno.</p>
+<p class="lead">Aplikacja łączy się domyślnie z <b>produkcyjnym</b> PUESC (ws.puesc.gov.pl) – zapytania i potwierdzenia są prawdziwe.
+Login = adres e-mail konta PUESC. Hasło nie jest zapisywane, tylko jego skrót SHA-1 potrzebny do podpisu WS-Security.
+Po kliknięciu „Zapisz” aplikacja sama odczyta konfigurację SOAP z serwera (WSDL) i sprawdzi połączenie.</p>
 
 <form method="post" class="card stack">
   <div class="tabs">
-    <label><input type="radio" name="srodowisko" value="test" {{ 'checked' if srodowisko=='test' }} onchange="this.form.akcja.value='przelacz';this.form.submit()"> Test</label>
     <label><input type="radio" name="srodowisko" value="produkcja" {{ 'checked' if srodowisko=='produkcja' }} onchange="this.form.akcja.value='przelacz';this.form.submit()"> Produkcja</label>
+    <label><input type="radio" name="srodowisko" value="test" {{ 'checked' if srodowisko=='test' }} onchange="this.form.akcja.value='przelacz';this.form.submit()"> Test (te-ws.puesc.gov.pl)</label>
   </div>
+  <p class="sub">Konfiguracja SOAP: <b>{{ zrodlo_ws }}</b>{% if zrodlo_ws == 'domyślne' %} – zostanie odczytana z WSDL przy pierwszym połączeniu{% endif %}.
+    {% if blad_wsdl %}<span class="danger">Ostatnia próba odczytu WSDL: {{ blad_wsdl }}</span>{% endif %}</p>
   <input type="hidden" name="akcja" value="zapisz">
   <div class="row">
     <label class="grow">Login PUESC (e-mail)<input name="login" value="{{ login }}" autocomplete="username"></label>
@@ -21,12 +23,12 @@ konto na test.puesc.gov.pl zakłada się osobno.</p>
   <label>Systemy docelowe (targetSystems, oddzielone przecinkami – zwykle puste)<input name="target_systems" value="{{ target_systems }}" placeholder="np. ZEFIR2"></label>
   <details>
     <summary>Zaawansowane: przestrzenie nazw i akcje SOAP</summary>
-    <p class="hint">Specyfikacja SEAP nie podaje tych wartości wprost. „Odczytaj z WSDL” pobiera je z serwera PUESC –
-      zrób to raz po ustawieniu środowiska. Pole można też edytować ręcznie (JSON).</p>
+    <p class="hint">Specyfikacja SEAP nie podaje tych wartości wprost – aplikacja pobiera je z WSDL serwera PUESC.
+      Edytuj ręcznie (JSON) tylko, jeśli helpdesk PUESC wskaże inne wartości.</p>
     <textarea name="ws_json" class="vins" style="min-height:18rem">{{ ws_json }}</textarea>
   </details>
   <div class="row">
-    <button class="btn primary" onclick="this.form.akcja.value='zapisz'">Zapisz</button>
+    <button class="btn primary" onclick="this.form.akcja.value='zapisz'">Zapisz i sprawdź połączenie</button>
     <button class="btn" onclick="this.form.akcja.value='wsdl'">Odczytaj z WSDL</button>
     <button class="btn" onclick="this.form.akcja.value='test'">Test połączenia</button>
     <button class="btn" onclick="this.form.akcja.value='domyslne'">Przywróć domyślne WS</button>

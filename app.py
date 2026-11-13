@@ -93,21 +93,54 @@ def zapisz_ustawienie(klucz, wartosc):
 
 
 def srodowisko() -> str:
-    return ustawienie("srodowisko", "test")
+    return ustawienie("srodowisko", "produkcja")
 
 
-def konfiguracja_ws() -> dict:
+_PROBY_WSDL: dict[tuple[str, str], str] = {}  # (środowisko, adres) → błąd ostatniej próby w tym uruchomieniu
+
+
+def odczytaj_wsdl(sr: str, endpoint: str, wymus: bool = False) -> dict | None:
+    """Pobiera konfigurację SOAP z WSDL serwera i zapisuje ją. Bez wymus – najwyżej raz na uruchomienie."""
+    if not wymus and (sr, endpoint) in _PROBY_WSDL:
+        return None
+    try:
+        konf = seap.wykryj_z_wsdl(endpoint)
+    except Exception as e:  # brak sieci, zły adres, nieznany format WSDL
+        _PROBY_WSDL[(sr, endpoint)] = str(e)
+        return None
+    _PROBY_WSDL.pop((sr, endpoint), None)
+    zapisz_ustawienie(f"ws_{sr}", json.dumps(konf, ensure_ascii=False))
+    db().commit()
+    return konf
+
+
+def konfiguracja_ws(auto_wsdl: bool = False) -> dict:
+    """Konfiguracja SOAP: zapisana (z WSDL albo ręczna), a jeśli jej brak – próba odczytu z WSDL."""
     sr = srodowisko()
+    endpoint = ustawienie(f"endpoint_{sr}") or seap.ENDPOINTY[sr]
     zapis = ustawienie(f"ws_{sr}")
-    konf = json.loads(zapis) if zapis else seap.domyslna_konfiguracja(sr)
-    konf["endpoint"] = ustawienie(f"endpoint_{sr}") or seap.ENDPOINTY[sr]
+    konf = json.loads(zapis) if zapis else None
+    if konf is None and auto_wsdl:
+        konf = odczytaj_wsdl(sr, endpoint)
+    konf = konf or seap.domyslna_konfiguracja(sr)
+    konf["endpoint"] = endpoint
     return konf
 
 
 def klient() -> seap.Klient:
     sr = srodowisko()
-    return seap.Klient(konfiguracja_ws(), ustawienie(f"login_{sr}"), ustawienie(f"skrot_{sr}"),
-                       log_dir=LOG_DIR)
+    return seap.Klient(konfiguracja_ws(auto_wsdl=True), ustawienie(f"login_{sr}"),
+                       ustawienie(f"skrot_{sr}"), log_dir=LOG_DIR)
+
+
+def test_polaczenia() -> tuple[bool, str]:
+    """GetDocuments za dzisiaj – niczego nie wysyła i nie oznacza dokumentów jako pobranych."""
+    try:
+        dzis = date.today().isoformat()
+        n = len(klient().get_documents(dataOd=dzis, dataDo=dzis, pobrany=0))
+        return True, f"Połączenie z PUESC ({srodowisko()}) działa – dzisiejszych dokumentów na koncie: {n}."
+    except seap.BladSeap as e:
+        return False, f"Test połączenia z PUESC ({srodowisko()}) nieudany: {e}"
 
 
 def systemy_docelowe() -> list[str]:
@@ -434,8 +467,8 @@ def dokumenty():
 def ustawienia():
     if request.method == "POST":
         akcja = request.form.get("akcja", "zapisz")
-        sr = request.form.get("srodowisko", "test")
-        sr = sr if sr in seap.ENDPOINTY else "test"
+        sr = request.form.get("srodowisko", "produkcja")
+        sr = sr if sr in seap.ENDPOINTY else "produkcja"
         zapisz_ustawienie("srodowisko", sr)
         if akcja == "zapisz":
             zapisz_ustawienie(f"login_{sr}", request.form.get("login", "").strip())
@@ -447,36 +480,49 @@ def ustawienia():
                 try:
                     konf = json.loads(request.form["ws_json"])
                     assert set(konf["operacje"]) >= set(seap.OPERACJE)
-                    zapisz_ustawienie(f"ws_{sr}", json.dumps(konf, ensure_ascii=False))
+                    obecna = konfiguracja_ws()
+                    if {k: v for k, v in konf.items() if k not in ("zrodlo", "endpoint")} != \
+                            {k: v for k, v in obecna.items() if k not in ("zrodlo", "endpoint")}:
+                        konf["zrodlo"] = "ręcznie"
+                        zapisz_ustawienie(f"ws_{sr}", json.dumps(konf, ensure_ascii=False))
                 except (ValueError, KeyError, AssertionError, TypeError):
                     flash("Konfiguracja WS ma niepoprawny format – nie zapisano jej.", "err")
+            db().commit()
             flash("Zapisano ustawienia.", "ok")
+            if ustawienie(f"login_{sr}") and ustawienie(f"skrot_{sr}"):
+                endpoint = ustawienie(f"endpoint_{sr}") or seap.ENDPOINTY[sr]
+                if not ustawienie(f"ws_{sr}"):
+                    if odczytaj_wsdl(sr, endpoint, wymus=True):
+                        flash("Odczytano konfigurację SOAP z WSDL serwera PUESC.", "ok")
+                    else:
+                        flash(f"Nie udało się odczytać WSDL ({_PROBY_WSDL.get((sr, endpoint))}) – "
+                              "użyto wartości domyślnych.", "warn")
+                ok, msg = test_polaczenia()
+                flash(msg, "ok" if ok else "err")
         elif akcja == "wsdl":
-            try:
-                konf = seap.wykryj_z_wsdl(ustawienie(f"endpoint_{sr}") or seap.ENDPOINTY[sr])
-                zapisz_ustawienie(f"ws_{sr}", json.dumps(konf, ensure_ascii=False))
+            endpoint = ustawienie(f"endpoint_{sr}") or seap.ENDPOINTY[sr]
+            if odczytaj_wsdl(sr, endpoint, wymus=True):
                 flash("Odczytano konfigurację z WSDL.", "ok")
-            except Exception as e:
-                flash(f"Nie udało się odczytać WSDL: {e}", "err")
+            else:
+                flash(f"Nie udało się odczytać WSDL: {_PROBY_WSDL.get((sr, endpoint))}", "err")
         elif akcja == "domyslne":
             zapisz_ustawienie(f"ws_{sr}", "")
             flash("Przywrócono domyślną konfigurację WS.", "ok")
         elif akcja == "test":
             db().commit()
-            try:
-                dzis = date.today().isoformat()
-                n = len(klient().get_documents(dataOd=dzis, dataDo=dzis, pobrany=0))
-                flash(f"Połączenie działa – PUESC odpowiedział (dzisiejszych dokumentów: {n}).", "ok")
-            except seap.BladSeap as e:
-                flash(f"Test nieudany: {e}", "err")
+            ok, msg = test_polaczenia()
+            flash(msg, "ok" if ok else "err")
         db().commit()
         return redirect(url_for("ustawienia"))
     sr = srodowisko()
+    konf = konfiguracja_ws()
     return render_template("ustawienia.html", login=ustawienie(f"login_{sr}"),
+                           zrodlo_ws=konf.get("zrodlo", "domyślne"),
+                           blad_wsdl=_PROBY_WSDL.get((sr, konf["endpoint"]), ""),
                            ma_haslo=bool(ustawienie(f"skrot_{sr}")),
                            endpoint=ustawienie(f"endpoint_{sr}"), domyslny_endpoint=seap.ENDPOINTY[sr],
                            target_systems=ustawienie("target_systems"),
-                           ws_json=json.dumps(konfiguracja_ws(), ensure_ascii=False, indent=2))
+                           ws_json=json.dumps(konf, ensure_ascii=False, indent=2))
 
 
 @app.route("/log")

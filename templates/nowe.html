@@ -22,7 +22,7 @@ Potwierdzenie jest dostępne dopiero po zaksięgowaniu wpłaty w ZEFIR2.</p>
     <p class="hint">Przy potwierdzeniu zbiorczym ZEFIR2 sprawdza kwotę dokumentu, by ustalić, czy masz prawo je pobrać.</p>
   </div>
   <div class="row">
-    <button class="btn primary" name="akcja" value="wyslij">Wyślij do PUESC ({{ srodowisko }})</button>
+    <button class="btn primary" name="akcja" value="wyslij"{% if srodowisko=='produkcja' %} onclick="return confirm('Wysłać zapytania do produkcyjnego PUESC?')"{% endif %}>Wyślij do PUESC{% if srodowisko=='test' %} (TEST){% endif %}</button>
     <button class="btn" name="akcja" value="przygotuj">Tylko przygotuj XML</button>
   </div>
 </form>
